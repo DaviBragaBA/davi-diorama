@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Davi Braga — Business Analyst</title>
+    <meta name="description" content="Davi Braga · Business Analyst, Core Limit Policies no Nubank. Um apartamento 3D que é o meu currículo." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="stage">
+      <canvas id="view"></canvas>
+      <div id="scrim" aria-hidden="true"></div>
+      <div id="grain" aria-hidden="true"></div>
+      <div id="vignette" aria-hidden="true"></div>
+
+      <header id="brand">
+        <span class="mark"></span>
+        <span>Davi Braga</span>
+        <em>Business Analyst · Nubank</em>
+      </header>
+
+      <section id="slide" aria-live="polite"></section>
+
+      <nav id="rail" aria-label="seções"></nav>
+
+      <footer id="bar">
+        <div id="counter"><b>00</b><span>/ 06</span></div>
+        <p class="hint"><kbd>←</kbd><kbd>→</kbd> ou scroll · <kbd>M</kbd> sumário · <kbd>C</kbd> e-mail · clica nas coisas</p>
+        <div class="tools">
+          <button id="open-index" type="button">Sumário</button>
+          <button id="sound" type="button" aria-label="som"><i></i><i></i><i></i><i></i></button>
+        </div>
+      </footer>
+
+      <div id="toast" role="status"></div>
+
+      <div id="dossier">
+        <aside id="dossier-sheet">
+          <button id="dossier-close" type="button">fechar <kbd>esc</kbd></button>
+          <div id="dossier-body"></div>
+        </aside>
+      </div>
+
+      <div id="intro">
+        <p class="sub">Business Analyst · Core Limit Policies · Nubank</p>
+        <h1><span>Davi</span><span>Braga</span></h1>
+        <p class="sub">Um apartamento que é o meu currículo. Entra.</p>
+        <button class="cta" type="button">entrar <i>↵</i></button>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "davi-diorama",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5173",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test:path": "node scripts/check-path.mjs"
+  },
+  "dependencies": {
+    "gsap": "^3.13.0",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.169.0",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.3"
+  }
+}
