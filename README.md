@@ -1,7 +1,29 @@
-# Davi Braga — diorama
+# davi-diorama
 
-Portfolio 3D no idioma visual de [david-hckh.com](https://david-hckh.com/) (cream, câmara de diorama, massinha mate).
+Portfólio 3D de [Davi Braga Moreira](https://github.com/DaviBragaBA), Business Analyst no Nubank.
 
-Não copia o `avatar.glb` nem as texturas do David Heckhoff. Personagem e quarto são originais.
+**No ar:** [davi-diorama.vercel.app](https://davi-diorama.vercel.app)
 
-Estudo do motor: [portfolio-2025](https://github.com/davidhckh/portfolio-2025).
+Câmara de diorama, personagem em massinha e quarto originais. O idioma visual (cream, câmara, mate) estuda o motor de [david-hckh.com](https://david-hckh.com/) / [portfolio-2025](https://github.com/davidhckh/portfolio-2025) — sem copiar `avatar.glb` nem as texturas do David Heckhoff.
+
+## Stack
+
+Vite · TypeScript · Three.js · GSAP
+
+## Local
+
+```bash
+npm install
+npm run dev
+```
+
+Abre em `http://localhost:5173`.
+
+## Onde está o quê
+
+| Pasta / ficheiro | Função |
+| --- | --- |
+| `src/data/` | Experiência, formação, projetos, TCC, skills |
+| `src/world.ts` | Cena 3D |
+| `src/puppet.ts` | Personagem |
+| `src/story.ts` | Navegação / narrativa da câmara |
