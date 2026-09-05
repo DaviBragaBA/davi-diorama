@@ -99,7 +99,8 @@ export function bindHud(root: HTMLElement): Hud {
     body.innerHTML = fichaHTML(card);
     unlive = mountLive(body);
     dossier.classList.add("open");
-    gsap.fromTo(sheet, { x: 40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.45, ease: "power3.out" });
+    const mob = matchMedia("(max-width: 900px)").matches;
+    gsap.fromTo(sheet, mob ? { y: 72, x: 0, opacity: 1 } : { x: 40, y: 0, opacity: 0 }, { x: 0, y: 0, opacity: 1, duration: 0.45, ease: "power3.out" });
     gsap.from(body.children, { y: 14, opacity: 0, duration: 0.45, stagger: 0.05, ease: "power2.out", delay: 0.1 });
     body.querySelectorAll<HTMLButtonElement>("[data-jump]").forEach((b) => {
       b.addEventListener("click", () => {
@@ -112,7 +113,18 @@ export function bindHud(root: HTMLElement): Hud {
     if (!dossier.classList.contains("open")) return;
     unlive?.();
     unlive = null;
-    gsap.to(sheet, { x: 30, opacity: 0, duration: 0.25, ease: "power2.in", onComplete: () => dossier.classList.remove("open") });
+    const mob = matchMedia("(max-width: 900px)").matches;
+    gsap.to(sheet, {
+      x: mob ? 0 : 30,
+      y: mob ? 48 : 0,
+      opacity: mob ? 1 : 0,
+      duration: 0.25,
+      ease: "power2.in",
+      onComplete: () => {
+        dossier.classList.remove("open");
+        gsap.set(sheet, { x: 0, y: 0, opacity: 1 });
+      },
+    });
   };
 
   let tHide = 0;

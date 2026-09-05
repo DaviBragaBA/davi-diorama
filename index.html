@@ -2,7 +2,10 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a0c11" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <title>Davi Braga — Business Analyst</title>
     <meta name="description" content="Davi Braga · Business Analyst, Core Limit Policies no Nubank. Um apartamento 3D que é o meu currículo." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -28,7 +31,8 @@
 
       <footer id="bar">
         <div id="counter"><b>00</b><span>/ 06</span></div>
-        <p class="hint"><kbd>←</kbd><kbd>→</kbd> ou scroll · <kbd>M</kbd> sumário · <kbd>C</kbd> e-mail · clica nas coisas</p>
+        <p class="hint desk"><kbd>←</kbd><kbd>→</kbd> ou scroll · <kbd>M</kbd> sumário · <kbd>C</kbd> e-mail · clica nas coisas</p>
+        <p class="hint mob">desliza · toca no 3D e nos chips</p>
         <div class="tools">
           <button id="open-index" type="button">Sumário</button>
           <button id="sound" type="button" aria-label="som"><i></i><i></i><i></i><i></i></button>
@@ -39,7 +43,7 @@
 
       <div id="dossier">
         <aside id="dossier-sheet">
-          <button id="dossier-close" type="button">fechar <kbd>esc</kbd></button>
+          <button id="dossier-close" type="button">fechar <kbd class="desk">esc</kbd></button>
           <div id="dossier-body"></div>
         </aside>
       </div>
@@ -48,7 +52,7 @@
         <p class="sub">Business Analyst · Core Limit Policies · Nubank</p>
         <h1><span>Davi</span><span>Braga</span></h1>
         <p class="sub">Um apartamento que é o meu currículo. Entra.</p>
-        <button class="cta" type="button">entrar <i>↵</i></button>
+        <button class="cta" type="button">entrar <i class="desk">↵</i></button>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>

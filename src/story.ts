@@ -11,6 +11,9 @@ import { musicOn, sfxBark, sfxClick, sfxPop, sfxWhoosh, toggleMusic } from "./au
 
 gsap.registerPlugin(Observer);
 
+const PHONE = 900;
+const phone = () => innerWidth <= PHONE;
+
 let stopPrev: (() => void) | null = null;
 
 const ACTS = SLIDES.map((s) => s.id);
@@ -21,19 +24,19 @@ export function startStory(canvas: HTMLCanvasElement, stage: HTMLElement) {
   const { signal } = ac;
   const hud = bindHud(stage);
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !phone(), alpha: false, powerPreference: phone() ? "low-power" : "high-performance" });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, phone() ? 1.2 : 1.75));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = !phone();
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.setClearColor(INK, 1);
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(INK);
   scene.fog = new THREE.Fog(INK, 12, 34);
-  const camera = new THREE.PerspectiveCamera(34, 1, 0.05, 80);
+  const camera = new THREE.PerspectiveCamera(phone() ? 44 : 34, 1, 0.05, 80);
 
   const world = buildWorld();
   scene.add(world.group);
@@ -59,6 +62,8 @@ export function startStory(canvas: HTMLCanvasElement, stage: HTMLElement) {
   const lookX = gsap.quickTo(look, "x", { duration: 0.6, ease: "power3.out" });
   const lookY = gsap.quickTo(look, "y", { duration: 0.6, ease: "power3.out" });
 
+  const fitCam = (c: Cam): Cam =>
+    phone() ? { px: c.px + 0.25, py: c.py + 0.45, pz: c.pz + 1.85, tx: c.tx, ty: c.ty + 0.55, tz: c.tz } : c;
   const D = davi.pose;
   const P = davi.root.position;
   const face = (x: number, z: number, x2: number, z2: number) => Math.atan2(x2 - x, z2 - z);
@@ -84,7 +89,7 @@ export function startStory(canvas: HTMLCanvasElement, stage: HTMLElement) {
     const standing = D.seated < 0.5;
     let t = 0;
     if (from < 0) {
-      tl.to(cam, { ...spot.cam, duration: 2.2, ease: "power3.inOut" }, 0);
+      tl.to(cam, { ...fitCam(spot.cam), duration: 2.2, ease: "power3.inOut" }, 0);
       tl.call(() => hud.show(slideOf(id), 1), [], 1.1);
       sfxWhoosh();
       return;
@@ -101,7 +106,7 @@ export function startStory(canvas: HTMLCanvasElement, stage: HTMLElement) {
         tl.to(D, { walk: 0, seated: 1, duration: 0.55 }, t + 0.25);
         tl.to(world.chair.position, { z: F.chair.z, duration: 0.4 }, t + 0.3);
       }
-      tl.to(cam, { ...spot.cam, duration: Math.max(1.4, t + 0.6), ease: "power3.inOut" }, 0);
+      tl.to(cam, { ...fitCam(spot.cam), duration: Math.max(1.4, t + 0.6), ease: "power3.inOut" }, 0);
     } else {
       if (!standing) {
         tl.to(world.chair.position, { z: F.desk.z + 0.5, duration: 0.3 }, 0);
@@ -116,7 +121,7 @@ export function startStory(canvas: HTMLCanvasElement, stage: HTMLElement) {
       const arrive = t + wd;
       const finalFacing = face(spot.x, spot.z, spot.cam.px, spot.cam.pz) + (id === "balcony" ? 0 : -0.3);
       tl.to(D, { walk: 0, facing: finalFacing, look: 1, wave: id === "balcony" ? 1 : 0, duration: 0.35 }, arrive);
-      tl.to(cam, { ...spot.cam, duration: Math.max(1.4, arrive + 0.4), ease: "power3.inOut" }, 0);
+      tl.to(cam, { ...fitCam(spot.cam), duration: Math.max(1.4, arrive + 0.4), ease: "power3.inOut" }, 0);
       if (id === "war" && from === 0) tl.call(() => { dog.bark = 1; sfxBark(); }, [], t + 0.35);
     }
     tl.call(() => hud.show(slideOf(id), dir), [], Math.min(0.55, t + 0.3));
@@ -131,6 +136,7 @@ export function startStory(canvas: HTMLCanvasElement, stage: HTMLElement) {
     started = true;
     await hud.dismissIntro();
     goTo(0);
+    if (phone()) hud.toast("desliza pra andar · toca no 3D");
   };
 
   const ray = new THREE.Raycaster();
@@ -322,7 +328,7 @@ export function startStory(canvas: HTMLCanvasElement, stage: HTMLElement) {
   };
   hud.onChip(onPick);
 
-  const uiHit = (e: Event) => !!(e.target as HTMLElement).closest?.("button, a, #dossier, #rail, #intro");
+  const uiHit = (e: Event) => !!(e.target as HTMLElement).closest?.("button, a, input, #dossier, #rail, #intro, #bar, #slide");
 
   const hitPick = (e: PointerEvent) => {
     if (uiHit(e)) {
@@ -345,18 +351,30 @@ export function startStory(canvas: HTMLCanvasElement, stage: HTMLElement) {
       if (pick) break;
     }
     document.body.style.cursor = pick ? "pointer" : "";
-    if (e.type === "pointerdown" && pick) onPick(pick.kind, pick.id);
+    if (e.type !== "pointermove" && pick) onPick(pick.kind, pick.id);
   };
 
+  const ptr = { x: 0, y: 0, t: 0 };
   window.addEventListener("pointermove", (e) => {
-    lookX((e.clientX / innerWidth) * 2 - 1);
-    lookY(-((e.clientY / innerHeight) * 2 - 1));
-    davi.look.x = look.x;
-    davi.look.y = look.y;
-    if (started) hitPick(e);
+    if (!phone()) {
+      lookX((e.clientX / innerWidth) * 2 - 1);
+      lookY(-((e.clientY / innerHeight) * 2 - 1));
+      davi.look.x = look.x;
+      davi.look.y = look.y;
+      if (started) hitPick(e);
+    }
   }, { signal });
   window.addEventListener("pointerdown", (e) => {
+    ptr.x = e.clientX;
+    ptr.y = e.clientY;
+    ptr.t = performance.now();
     if (!started) return void begin();
+    if (!phone()) hitPick(e);
+  }, { signal });
+  window.addEventListener("pointerup", (e) => {
+    if (!started || !phone() || hud.isOpen()) return;
+    if (Math.hypot(e.clientX - ptr.x, e.clientY - ptr.y) > 16) return;
+    if (performance.now() - ptr.t > 450) return;
     hitPick(e);
   }, { signal });
 
@@ -383,25 +401,31 @@ export function startStory(canvas: HTMLCanvasElement, stage: HTMLElement) {
   }, { signal });
 
   let lastWheel = 0;
-  const uiScroll = (e: Event) => !!(e.target as HTMLElement | null)?.closest?.("#dossier, #dossier-sheet, #rail");
+  const uiScroll = (e: Event) => {
+    const t = e.target as HTMLElement | null;
+    if (t?.closest?.("#dossier, #dossier-sheet, #rail, #bar, button, a, input")) return true;
+    return phone() && !!t?.closest?.("#slide");
+  };
   const obs = Observer.create({
     type: "wheel,touch",
     wheelSpeed: -1,
-    tolerance: 12,
-    ignore: "#dossier, #dossier-sheet, #rail",
+    tolerance: phone() ? 28 : 12,
+    ignore: "#dossier, #dossier-sheet, #rail, #bar",
     ignoreCheck: (event) => hud.isOpen() || uiScroll(event),
-    preventDefault: true,
+    preventDefault: !phone(),
     onUp: () => {
       if (hud.isOpen()) return;
       if (!started) return void begin();
-      if (performance.now() - lastWheel < 700) return;
+      if (cur < 0) return;
+      if (performance.now() - lastWheel < (phone() ? 850 : 700)) return;
       lastWheel = performance.now();
       goTo(cur + 1);
     },
     onDown: () => {
       if (hud.isOpen()) return;
       if (!started) return void begin();
-      if (performance.now() - lastWheel < 700) return;
+      if (cur < 0) return;
+      if (performance.now() - lastWheel < (phone() ? 850 : 700)) return;
       lastWheel = performance.now();
       goTo(cur - 1);
     },
@@ -411,14 +435,22 @@ export function startStory(canvas: HTMLCanvasElement, stage: HTMLElement) {
   stage.querySelector("#intro .cta")?.addEventListener("click", () => void begin(), { signal });
 
   const resize = () => {
-    renderer.setSize(innerWidth, innerHeight, false);
-    camera.aspect = innerWidth / innerHeight;
-    if (innerWidth > 900) camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.17, innerHeight * 0.02, innerWidth, innerHeight);
-    else camera.clearViewOffset();
+    const w = canvas.clientWidth || innerWidth;
+    const h = canvas.clientHeight || innerHeight;
+    const p = phone();
+    renderer.setPixelRatio(Math.min(devicePixelRatio, p ? 1.2 : 1.75));
+    renderer.shadowMap.enabled = !p;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.fov = p ? 44 : 34;
+    if (p) camera.clearViewOffset();
+    else camera.setViewOffset(w, h, -w * 0.17, h * 0.02, w, h);
     camera.updateProjectionMatrix();
+    if (started && cur >= 0 && !busy) Object.assign(cam, fitCam(world.spots[ACTS[cur]].cam));
   };
   resize();
   window.addEventListener("resize", resize, { signal });
+  visualViewport?.addEventListener("resize", resize, { signal });
 
   const clock = new THREE.Clock();
   const target = new THREE.Vector3();
@@ -450,7 +482,8 @@ export function startStory(canvas: HTMLCanvasElement, stage: HTMLElement) {
       (b.material as THREE.MeshStandardMaterial).emissiveIntensity = 1.5 + Math.sin(t * 3 + i) * 0.4;
     });
     target.set(cam.tx, cam.ty, cam.tz);
-    camera.position.set(cam.px + look.x * 0.28, cam.py + look.y * 0.14, cam.pz);
+    const lookAmt = phone() ? 0 : 1;
+    camera.position.set(cam.px + look.x * 0.28 * lookAmt, cam.py + look.y * 0.14 * lookAmt, cam.pz);
     camera.lookAt(target);
     renderer.render(scene, camera);
   };
