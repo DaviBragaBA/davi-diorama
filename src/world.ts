@@ -12,12 +12,19 @@ export type World = {
   pickables: THREE.Object3D[];
   boards: LiveBoard[];
   monitor: THREE.Mesh;
+  /** The desk PC screen: redraws itself while on screen. */
+  desk: { update: (t: number) => void; replay: () => void };
   cycleDesk: () => string;
   cycleNote: () => string;
   mug: THREE.Mesh;
   lamp: THREE.Group;
   lampLight: THREE.PointLight;
+  lampShade: THREE.MeshStandardMaterial;
   pendant: THREE.PointLight;
+  key: THREE.DirectionalLight;
+  monLight: THREE.PointLight;
+  /** The colored light of each room, for the room-by-room lighting of the tour. */
+  roomLights: THREE.PointLight[];
   knapsack: THREE.Group;
   packItems: THREE.Mesh[];
   steam: THREE.Group;
@@ -147,7 +154,11 @@ function room(g: THREE.Group, x: number, w: number, floor: string, wall: string)
   g.add(base);
 }
 
-export function buildWorld(): World {
+/**
+ * Builds the apartment. `pause` is awaited between rooms so the browser can paint the loader
+ * and answer input instead of running one long task.
+ */
+export async function buildWorld(pause: () => Promise<void> = async () => {}): Promise<World> {
   const g = new THREE.Group();
   const pickables: THREE.Object3D[] = [];
   const boards: LiveBoard[] = [];
@@ -185,12 +196,18 @@ export function buildWorld(): World {
   key.shadow.camera.near = 1;
   key.shadow.camera.far = 52;
   key.shadow.bias = -0.0004;
-  key.shadow.normalBias = 0.05;
+  key.shadow.normalBias = 0.04;
   key.target.position.set(8, 0, -1);
   g.add(key, key.target);
   const fill = new THREE.DirectionalLight("#6f86ff", 0.35);
   fill.position.set(10, 4, -6);
   g.add(fill);
+  // cool rim from behind and above: separates the clay figures from the dark walls
+  const rim = new THREE.DirectionalLight("#9fb4ff", 0.6);
+  rim.position.set(4, 2.6, -9);
+  rim.target.position.set(6, 1, 2);
+  g.add(rim, rim.target);
+  const roomLights: THREE.PointLight[] = [];
   for (const [x, c] of [
     [-2.6, "#ffcf9a"],
     [6.15, "#7c5cff"],
@@ -202,6 +219,7 @@ export function buildWorld(): World {
     const pl = new THREE.PointLight(c, x > 24 ? 11 : 6, 7, 1.8);
     pl.position.set(x, 2.5, -1.2);
     g.add(pl);
+    roomLights.push(pl);
   }
 
   const cork = corkBoard(-2.35, 1.72, -3.0);
@@ -218,6 +236,7 @@ export function buildWorld(): World {
 
   const win = windowPane(-4.55, 1.85, -3.02, 1.15, 1.05);
   addPick(win);
+  await pause();
 
   const sofaX = F.sofa.x;
   g.add(mesh(G.rbox(2.15, 0.42, 0.92, 0.1), P.sofa, sofaX, 0.38, F.sofa.z));
@@ -258,11 +277,11 @@ export function buildWorld(): World {
   g.add(mesh(G.rbox(0.08, 0.2, 0.08, 0.01), P.black, deskX + 0.08, 0.86, deskZ - 0.3));
   g.add(mesh(G.rbox(0.3, 0.02, 0.16, 0.005), P.black, deskX + 0.08, 0.8, deskZ - 0.3));
   const desk = deskModes();
-  const monitor = new THREE.Mesh(G.plane(0.92, 0.52), new THREE.MeshStandardMaterial({ map: desk.tex, emissive: "#ffffff", emissiveMap: desk.tex, emissiveIntensity: 0.9, roughness: 0.5 }));
+  const monitor = new THREE.Mesh(G.plane(0.92, 0.52), new THREE.MeshStandardMaterial({ map: desk.tex, emissive: "#ffffff", emissiveMap: desk.tex, emissiveIntensity: 1.25, roughness: 0.5 }));
   monitor.position.set(deskX + 0.08, 1.24, deskZ - 0.272);
   tag(monitor, "egg", "monitor");
   addPick(monitor);
-  const monLight = new THREE.PointLight("#8fb4ff", 1.6, 2.6, 2);
+  const monLight = new THREE.PointLight("#8fb4ff", 2.2, 2.8, 2);
   monLight.position.set(deskX + 0.08, 1.2, deskZ + 0.2);
   g.add(monLight);
   g.add(mesh(G.rbox(0.56, 0.02, 0.2, 0.01), "#2a2c33", deskX - 0.22, 0.8, deskZ + 0.16));
@@ -289,11 +308,13 @@ export function buildWorld(): World {
   lamp.position.set(F.lamp.x, 0, F.lamp.z);
   lamp.add(mesh(G.cyl(0.2, 0.22, 0.05, 20), P.black, 0, 0.025, 0));
   lamp.add(mesh(G.cyl(0.022, 0.022, 1.5, 10), P.metal, 0, 0.8, 0));
-  const shade = new THREE.Mesh(G.cyl(0.2, 0.3, 0.32, 24, true), new THREE.MeshStandardMaterial({ color: P.paper, roughness: 0.9, side: THREE.DoubleSide }));
+  // the shade glows a little, as paper does with a bulb inside; bloom picks it up
+  const lampShade = new THREE.MeshStandardMaterial({ color: P.paper, roughness: 0.9, side: THREE.DoubleSide, emissive: new THREE.Color("#ffd9a0"), emissiveIntensity: 0.32 });
+  const shade = new THREE.Mesh(G.cyl(0.2, 0.3, 0.32, 24, true), lampShade);
   shade.position.y = 1.6;
   shade.castShadow = true;
   lamp.add(shade);
-  const bulb = new THREE.Mesh(G.sphere(0.05, 12), emissive("#ffe2a8", 2));
+  const bulb = new THREE.Mesh(G.sphere(0.05, 12), emissive("#ffe2a8", 3.2));
   bulb.position.y = 1.55;
   lamp.add(bulb);
   const lampLight = new THREE.PointLight("#ffd9a0", 8, 6, 1.6);
@@ -307,7 +328,7 @@ export function buildWorld(): World {
   const pendShade = new THREE.Mesh(G.cyl(0.12, 0.24, 0.2, 24, true), new THREE.MeshStandardMaterial({ color: "#15161a", roughness: 0.6, side: THREE.DoubleSide }));
   pendShade.position.set(deskX, 2.3, deskZ);
   g.add(pendShade);
-  g.add(new THREE.Mesh(G.sphere(0.04, 12), emissive("#ffe2a8", 2.5)).translateX(deskX).translateY(2.27).translateZ(deskZ));
+  g.add(new THREE.Mesh(G.sphere(0.04, 12), emissive("#ffe2a8", 3.4)).translateX(deskX).translateY(2.27).translateZ(deskZ));
   const pendant = new THREE.PointLight("#ffe2a8", 10, 5.5, 1.6);
   pendant.position.set(deskX, 2.2, deskZ);
   pendant.castShadow = true;
@@ -333,6 +354,7 @@ export function buildWorld(): World {
   tag(trophy, "egg", "trophy");
   addPick(trophy);
 
+  await pause();
   const warX = 6.15;
   const limit = liveBars("Limit policy", "monitoria · core limit", warX, 1.85, -3.0, 2.7, 1.62);
   tag(limit.mesh, "experience", "nubank");
@@ -357,6 +379,7 @@ export function buildWorld(): World {
   for (let i = 0; i < 8; i++) server.add(new THREE.Mesh(G.rbox(0.04, 0.04, 0.02, 0.005), emissive(i % 3 ? P.accent : "#ff5c5c", 2)).translateX(-0.2 + (i % 4) * 0.13).translateY(1.6 - Math.floor(i / 4) * 0.2).translateZ(0.31));
   g.add(server);
 
+  await pause();
   const flashX = 11.2;
   g.add(mesh(G.cyl(1.1, 1.1, 0.02, 48), "#3a2a24", flashX, 0.01, 0.1));
   const flash = liveBars("Sales & CS", "flash · metabase", flashX, 1.85, -3.0, 2.5, 1.5, "PIPELINE · MÊS", 31.2);
@@ -387,6 +410,7 @@ export function buildWorld(): World {
   tag(laptop, "experience", "flash");
   addPick(laptop);
 
+  await pause();
   const stuX = 16.15;
   const edu = billboard("UNIFEI", "ESPM · formação", stuX, 1.85, -3.0, 2.3, 1.25, "#0f1116");
   tag(edu, "education", "unifei");
@@ -431,6 +455,7 @@ export function buildWorld(): World {
   });
   g.add(table(1.2, 0.6, 0.5, F.studioTable.x, F.studioTable.z, P.wood, P.black));
 
+  await pause();
   const labX = 21.2;
   const labBoard = liveBars("n8n", "skills · agentes · dia a dia", labX, 1.85, -3.0, 2.55, 1.5, "FLUXOS NO AR", 24);
   tag(labBoard.mesh, "practice", "dia-a-dia");
@@ -466,6 +491,7 @@ export function buildWorld(): World {
   plants.push(pLab);
   addPick(pLab);
 
+  await pause();
   const balX = 26.4;
   g.add(mesh(G.rbox(3.6, 0.08, 0.08, 0.02), P.black, balX, 1.05, 1.6));
   for (let i = 0; i <= 10; i++) g.add(mesh(G.cyl(0.015, 0.015, 1.02, 8), P.black, balX - 1.7 + i * 0.34, 0.52, 1.6));
@@ -514,6 +540,7 @@ export function buildWorld(): World {
   const string = new THREE.PointLight("#ffd27a", 4, 5, 1.8);
   string.position.set(balX, 2.2, -2.2);
   g.add(string);
+  roomLights.push(string);
 
   g.traverse((o) => {
     if ((o as THREE.Mesh).isMesh && !(o as THREE.Mesh).castShadow) (o as THREE.Mesh).receiveShadow = true;
@@ -530,12 +557,17 @@ export function buildWorld(): World {
     pickables,
     boards,
     monitor,
+    desk: { update: (t) => desk.update(t), replay: () => desk.replay() },
     cycleDesk: () => desk.cycle(),
     cycleNote: () => note.cycle(),
     mug,
     lamp,
     lampLight,
+    lampShade,
     pendant,
+    key,
+    monLight,
+    roomLights,
     knapsack,
     packItems,
     steam,

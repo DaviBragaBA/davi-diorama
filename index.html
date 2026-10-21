@@ -14,10 +14,12 @@
   </head>
   <body>
     <div id="stage">
-      <canvas id="view"></canvas>
+      <canvas id="view" role="img" aria-label="Apartamento 3D em massinha: Davi na mesa de trabalho, o cachorro Banguela e seis cômodos que contam o currículo."></canvas>
+      <div id="tour" aria-hidden="true"><div class="track"></div></div>
       <div id="scrim" aria-hidden="true"></div>
       <div id="grain" aria-hidden="true"></div>
       <div id="vignette" aria-hidden="true"></div>
+      <div id="fade" aria-hidden="true"></div>
 
       <header id="brand">
         <span class="mark"></span>
@@ -25,24 +27,29 @@
         <em>Business Analyst · Nubank</em>
       </header>
 
-      <section id="slide" aria-live="polite"></section>
+      <main id="main">
+        <section id="slide" aria-live="polite"></section>
+      </main>
 
       <nav id="rail" aria-label="seções"></nav>
 
       <footer id="bar">
-        <div id="counter"><b>00</b><span>/ 06</span></div>
+        <div id="counter"><span class="roll"><b>01</b></span><span>/ 06</span></div>
         <p class="hint desk"><kbd>←</kbd><kbd>→</kbd> ou scroll · <kbd>M</kbd> sumário · <kbd>C</kbd> e-mail · clica nas coisas</p>
         <p class="hint mob">desliza · toca no 3D e nos chips</p>
         <div class="tools">
           <button id="open-index" type="button">Sumário</button>
-          <button id="sound" type="button" aria-label="som"><i></i><i></i><i></i><i></i></button>
+          <button id="sound" type="button" aria-label="som" aria-pressed="false"><i></i><i></i><i></i><i></i></button>
         </div>
+        <div id="progress" aria-hidden="true"><i></i></div>
       </footer>
 
+      <button id="unfocus" type="button">← voltar <kbd class="desk">esc</kbd></button>
+      <div id="tip" aria-hidden="true"></div>
       <div id="toast" role="status"></div>
 
       <div id="dossier">
-        <aside id="dossier-sheet">
+        <aside id="dossier-sheet" role="dialog" aria-modal="true" aria-label="detalhes">
           <button id="dossier-close" type="button">fechar <kbd class="desk">esc</kbd></button>
           <div id="dossier-body"></div>
         </aside>
@@ -53,8 +60,15 @@
         <h1><span>Davi</span><span>Braga</span></h1>
         <p class="sub">Um apartamento que é o meu currículo. Entra.</p>
         <button class="cta" type="button">entrar <i class="desk">↵</i></button>
+        <div class="load" role="progressbar" aria-label="carregando o 3D" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="load-bar"><i></i></div>
+          <p><b class="load-n">00</b><span class="load-t">carregando</span></p>
+        </div>
       </div>
     </div>
+    <noscript>
+      <p class="nojs">Este currículo em 3D precisa de JavaScript. Davi Braga · Business Analyst no Nubank · <a href="https://www.linkedin.com/in/davibragamor/">LinkedIn</a></p>
+    </noscript>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

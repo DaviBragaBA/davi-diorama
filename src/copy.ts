@@ -275,3 +275,58 @@ export function fichaHTML(card: Card) {
     .map((p) => `<p>${p.replace(/\n/g, "<br/>")}</p>`)
     .join("")}</div>${card.live ? `<div class="live" data-live="${card.live}"></div>` : ""}${tags}${jumps}`;
 }
+
+const EGG_LABELS: Record<string, string> = {
+  monitor: "PC · troca a tela",
+  lamp: "abajur · modo noite",
+  speaker: "som · lo-fi",
+  vinyl: "vinil · lado B",
+  mug: "café",
+  banguela: "Banguela",
+  photo: "foto do Banguela",
+  davi: "Davi",
+  mail: "me chama · e-mail",
+  badge: "crachá · contato",
+  plant: "planta",
+  clock: "relógio",
+  duck: "pato",
+  trophy: "troféu",
+  window: "janela",
+  lights: "luzinhas",
+  ball: "bola",
+};
+
+const PRACTICE_LABELS: Record<string, string> = {
+  n8n: "n8n · automação",
+  "skills-craft": "Skills · criar",
+  agentes: "Agentes · dia a dia",
+  flux: "Fluxos · pipeline",
+  mcp: "MCP · tools",
+  "dia-a-dia": "IA no dia a dia",
+};
+
+const shortCompany = (c: string) => c.replace("Associação Atlética Acadêmica ", "Atlética ").replace("Estágio – ", "");
+
+/** Short name for the hover tip: what it is, and what a click does. Built from the same data as the cards. */
+export function pickLabel(kind: string, id: string): string {
+  if (kind === "egg") return EGG_LABELS[id] ?? id;
+  if (kind === "experience") {
+    const e = experiences.find((x) => x.id === id);
+    return e ? `${shortCompany(e.company)} · ${e.period ?? ""}`.trim() : id;
+  }
+  if (kind === "project") {
+    const p = projects.find((x) => x.id === id) ?? personalProjects.find((x) => x.id === id);
+    return p ? p.title : id;
+  }
+  if (kind === "education") {
+    const e = education.find((x) => x.id === id);
+    return e ? `${e.id === "unifei" ? "UNIFEI" : e.id === "espm" ? "ESPM" : e.institution} · ${e.degree}` : id;
+  }
+  if (kind === "tcc") return "TCC · leilão da mochila";
+  if (kind === "practice") return PRACTICE_LABELS[id] ?? "IA aplicada";
+  if (kind === "cork" || kind === "cv") return "índice · sumário";
+  if (kind === "act") return JUMPS.find((j) => j.id === id)?.label ?? id;
+  if (kind === "contact") return "contato";
+  if (kind === "link") return "LinkedIn";
+  return id;
+}
