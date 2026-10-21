@@ -685,6 +685,8 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
     hud.tip(hit ? pickLabel(hit.pick.kind, hit.pick.id) : null, e.clientX, e.clientY);
   };
   let hoverQueued: PointerEvent | null = null;
+  let lastMove: PointerEvent | null = null;
+  const prevCam = new THREE.Vector3();
   const look = { x: 0, y: 0 };
   const lookX = gsap.quickTo(look, "x", { duration: 0.6, ease: "power3.out" });
   const lookY = gsap.quickTo(look, "y", { duration: 0.6, ease: "power3.out" });
@@ -696,6 +698,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
       lookX((e.clientX / innerWidth) * 2 - 1);
       lookY(-((e.clientY / innerHeight) * 2 - 1));
       hoverQueued = e;
+      lastMove = e;
     },
     { signal }
   );
@@ -990,6 +993,10 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
     if (post) post.render(rm() ? 0 : dt);
     else renderer.render(scene, camera);
 
+    // the room also moves under a still mouse: re-check what is under it while the camera travels
+    const camMoved = prevCam.distanceToSquared(camera.position) > 1e-6;
+    prevCam.copy(camera.position);
+    if (!hoverQueued && camMoved && lastMove && frame % 4 === 0) hoverQueued = lastMove;
     if (hoverQueued) {
       hint(hoverQueued);
       hoverQueued = null;
