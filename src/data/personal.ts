@@ -7,7 +7,7 @@ export const personal = {
   fullName: "Davi Braga Moreira",
   /** Idade exibida (atualize quando fizer aniversário). Hoje: 26 anos. */
   age: 26,
-  email: "davibraga0809@gmail.com",
+  email: "davibragamoreira@hotmail.com",
   linkedin: "https://www.linkedin.com/in/davibragamor/",
   birthCity: "Varginha",
   currentCity: "São Paulo",
