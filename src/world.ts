@@ -19,7 +19,8 @@ export type World = {
   mug: THREE.Mesh;
   lamp: THREE.Group;
   lampLight: THREE.PointLight;
-  lampShade: THREE.MeshStandardMaterial;
+  /** The lamp's paper shade (its material may be swapped by the hover highlight, so keep the mesh). */
+  lampShade: THREE.Mesh;
   pendant: THREE.PointLight;
   key: THREE.DirectionalLight;
   monLight: THREE.PointLight;
@@ -563,7 +564,7 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
     mug,
     lamp,
     lampLight,
-    lampShade,
+    lampShade: shade,
     pendant,
     key,
     monLight,

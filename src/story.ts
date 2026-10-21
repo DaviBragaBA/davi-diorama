@@ -379,12 +379,16 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
     gsap.to(scene.background as THREE.Color, { r: col.r, g: col.g, b: col.b, duration: 0.8 });
     gsap.to(scene.fog!.color, { r: col.r, g: col.g, b: col.b, duration: 0.8 });
     world.group.traverse((o) => {
-      if (o instanceof THREE.DirectionalLight) gsap.to(o, { intensity: on ? 0.25 : o.userData.base ?? (o.userData.base = o.intensity), duration: 0.8 });
+      if (o instanceof THREE.DirectionalLight) {
+        // remember the daylight value before the first dimming, so "luz do dia" really comes back
+        o.userData.base ??= o.intensity;
+        gsap.to(o, { intensity: on ? 0.25 : o.userData.base, duration: 0.8 });
+      }
       if (o instanceof THREE.HemisphereLight) gsap.to(o, { intensity: on ? 0.12 : 0.55, duration: 0.8 });
     });
     gsap.to(world.lampLight, { intensity: on ? 14 : 8, duration: 0.6 });
     gsap.to(world.pendant, { intensity: on ? 16 : 10, duration: 0.6 });
-    gsap.to(world.lampShade, { emissiveIntensity: on ? 0.9 : 0.32, duration: 0.6 });
+    gsap.to(world.lampShade.material as THREE.MeshStandardMaterial, { emissiveIntensity: on ? 0.9 : 0.32, duration: 0.6 });
     gsap.to(renderer, { toneMappingExposure: on ? 0.9 : 1.05, duration: 0.8 });
     hud.toast(on ? "modo noite · só o abajur" : "luz do dia");
     sfxPop(on ? 330 : 520);
@@ -590,7 +594,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
 
   const pickAt = (x: number, y: number): { pick: Pick; root: THREE.Object3D } | null => {
     if (!s3) return null;
-    ndc.set((x / innerWidth) * 2 - 1, -((y / innerHeight) * 2 - 1));
+    ndc.set((x / W) * 2 - 1, -((y / H) * 2 - 1));
     ray.setFromCamera(ndc, camera);
     const hits = ray.intersectObjects(s3.roots, true);
     for (const h of hits) {
