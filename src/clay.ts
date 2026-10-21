@@ -16,7 +16,8 @@ export const G = {
   sphere: (r: number, seg = 32) => new THREE.SphereGeometry(r, seg, seg),
   cap: (r: number, len: number) => new THREE.CapsuleGeometry(r, Math.max(0.001, len), 8, 16),
   cyl: (a: number, b: number, h: number, s = 24, open = false) => new THREE.CylinderGeometry(a, b, h, s, 1, open),
-  rbox: (w: number, h: number, d: number, r = 0.1) => new RoundedBoxGeometry(w, h, d, 4, r),
+  /** Fewer bevel segments where the radius is too small to see: same look, a third of the triangles. */
+  rbox: (w: number, h: number, d: number, r = 0.1) => new RoundedBoxGeometry(w, h, d, r <= 0.012 ? 1 : r <= 0.045 ? 2 : 4, r),
   plane: (w: number, h: number) => new THREE.PlaneGeometry(w, h),
   torus: (r: number, t: number) => new THREE.TorusGeometry(r, t, 10, 28),
 };
