@@ -47,7 +47,7 @@
   <body>
     <div id="stage">
       <canvas id="view" role="img" aria-label="Apartamento 3D em massinha: Davi na mesa de trabalho, o cachorro Banguela e seis cômodos que contam o currículo."></canvas>
-      <div id="tour" aria-hidden="true"><div class="track"></div></div>
+      <div id="tour" aria-hidden="true" tabindex="-1"><div class="track"></div></div>
       <div id="scrim" aria-hidden="true"></div>
       <div id="grain" aria-hidden="true"></div>
       <div id="vignette" aria-hidden="true"></div>
@@ -66,7 +66,7 @@
       <nav id="rail" aria-label="seções"></nav>
 
       <footer id="bar">
-        <div id="counter"><span class="roll"><b>01</b></span><span>/ 06</span></div>
+        <div id="counter" role="group" aria-label="01 de 06"><span class="roll" aria-hidden="true"><b>01</b></span><span aria-hidden="true">/ 06</span></div>
         <p class="hint desk"><kbd>←</kbd><kbd>→</kbd> ou scroll · <kbd>M</kbd> sumário · <kbd>C</kbd> e-mail · clica nas coisas</p>
         <p class="hint mob">desliza · toca no 3D e nos chips</p>
         <div class="tools">

@@ -159,6 +159,8 @@ body {
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; touch-action: manipulation; }
 :focus-visible { outline: 2px solid var(--acc); outline-offset: 3px; border-radius: 6px; }
 .mob { display: none; }
+/* read by screen readers, invisible on screen (the counters animate visually; the final value is what gets announced) */
+.vh { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 kbd {
   font: 500 0.68rem var(--mono);
   padding: 0.1rem 0.38rem;

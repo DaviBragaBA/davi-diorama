@@ -174,7 +174,7 @@ export function bindHud(root: HTMLElement): Hud {
       <h2 class="title"><span class="l1">${s.title[0]}</span><span class="l2">${s.title[1]}</span></h2>
       <p class="lead">${s.lead}</p>
       <div class="metrics">${s.metrics
-        .map((m, i) => `<div class="m"><b data-i="${i}">${m.prefix ?? ""}${(0).toFixed(m.decimals ?? 0)}${m.suffix ?? ""}</b><span>${m.label}</span><i aria-hidden="true"></i></div>`)
+        .map((m, i) => `<div class="m"><b data-i="${i}" aria-hidden="true">${m.prefix ?? ""}${(0).toFixed(m.decimals ?? 0)}${m.suffix ?? ""}</b><span class="vh">${m.prefix ?? ""}${m.value.toFixed(m.decimals ?? 0)}${m.suffix ?? ""} </span><span>${m.label}</span><i aria-hidden="true"></i></div>`)
         .join("")}</div>
       <div class="chips">${s.chips.map((c) => `<button type="button" data-kind="${c.kind}" data-id="${c.id}"><b>${c.label}</b>${c.meta ? `<span>${c.meta}</span>` : ""}</button>`).join("")}</div>
       ${s.more ? `<button type="button" class="more" data-kind="${s.more.kind}" data-id="${s.more.id}">${s.more.label} <i>→</i></button>` : ""}
