@@ -87,3 +87,55 @@ export function assertWalkRoute(spots: Record<string, { x: number; z: number }>)
   );
   if (hits.length) throw new Error("corridor clips: " + [...new Set(hits)].join(" | "));
 }
+
+/** Where Davi stands in each chapter, in tour order: the desk chair, then one spot per room. */
+export const TOUR_SPOTS = [{ x: F.chair.x, z: F.chair.z }, SPOTS_XZ.war, SPOTS_XZ.flash, SPOTS_XZ.studio, SPOTS_XZ.lab, SPOTS_XZ.balcony] as const;
+
+const sstep = (a: number, b: number, u: number) => {
+  const x = Math.min(1, Math.max(0, (u - a) / (b - a)));
+  return x * x * (3 - 2 * x);
+};
+
+export type DaviPose = { x: number; z: number; seated: number; chairZ: number };
+
+/**
+ * Davi's pose as a pure function of tour progress s (0..5, one unit per chapter).
+ * Leaving the desk he stands up, steps back to the corridor and walks; every other leg is a
+ * walk along the corridor. Scrolling back replays it in reverse, and he sits down again.
+ */
+export function daviAt(s: number): DaviPose {
+  const n = TOUR_SPOTS.length;
+  s = Math.min(n - 1, Math.max(0, s));
+  const tuck = F.desk.z + 0.5;
+  if (s < 1) {
+    const stand = sstep(0, 0.16, s);
+    const out = sstep(0.1, 0.26, s);
+    const w = sstep(0.24, 0.88, s);
+    return {
+      x: F.chair.x + (TOUR_SPOTS[1].x - F.chair.x) * w,
+      z: F.chair.z + (WALK_Z - F.chair.z) * out,
+      seated: 1 - stand,
+      chairZ: F.chair.z + (tuck - F.chair.z) * sstep(0.04, 0.2, s),
+    };
+  }
+  const k = Math.min(n - 2, Math.floor(s));
+  const u = s - k;
+  const w = sstep(0.1, 0.88, u);
+  const a = TOUR_SPOTS[k];
+  const b = TOUR_SPOTS[k + 1];
+  return { x: a.x + (b.x - a.x) * w, z: WALK_Z, seated: 0, chairZ: tuck };
+}
+
+/** Samples the whole tour: once Davi has left the chair he never overlaps a piece of furniture. */
+export function assertTourClear(samples = 500) {
+  const hits: string[] = [];
+  const last = TOUR_SPOTS.length - 1;
+  for (let i = 0; i <= samples; i++) {
+    const s = (i / samples) * last;
+    if (s < 0.26) continue;
+    const p = daviAt(s);
+    const h = hitBlock(p.x, p.z, 0.18);
+    if (h) hits.push(`${h.name} @ s=${s.toFixed(3)}`);
+  }
+  if (hits.length) throw new Error("tour clips: " + [...new Set(hits)].join(" | "));
+}
