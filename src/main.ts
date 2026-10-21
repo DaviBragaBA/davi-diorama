@@ -28,6 +28,8 @@ afterPaint()
     loader.stage(0.48, "montando a casa");
     await fonts;
     await m.startStory(canvas, stage, loader);
+    // "Fale com o Davi": a tiny entry chunk now, the panel itself only on first open
+    void import("./talk/boot").then((talk) => talk.bootTalk(stage, m.sceneApi), () => {});
   })
   .catch((err) => {
     loader.fail("o 3D não abriu neste navegador");
