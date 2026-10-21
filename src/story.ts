@@ -127,6 +127,27 @@ async function build3D(canvas: HTMLCanvasElement, loader: Loader): Promise<Scene
   if (import.meta.env.DEV) assertTourClear();
   await yieldTask();
 
+  // Shadow casters: only what can throw a visible shadow. Floors, back walls and anything flat
+  // against them cast nothing anyone can see, and neither do the puppets' eyes, brows and chain links.
+  const bb = new THREE.Box3();
+  const sz = new THREE.Vector3();
+  world.group.updateMatrixWorld(true);
+  world.group.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh || !m.castShadow) return;
+    bb.setFromObject(m).getSize(sz);
+    if (bb.max.y < 0.02 || (bb.min.z < -2.7 && sz.z < 0.3 && bb.max.z < -2.6)) m.castShadow = false;
+  });
+  for (const r of [davi.root, dog.root]) {
+    r.updateMatrixWorld(true);
+    r.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      bb.setFromObject(m).getSize(sz);
+      if (Math.max(sz.x, sz.y, sz.z) < 0.09) m.castShadow = false;
+    });
+  }
+
   const keep: THREE.Object3D[] = [world.chair, world.mug, world.lamp, world.knapsack, world.steam, world.speaker, world.vinyl, world.ball, world.badge, world.monitor, ...world.packItems, ...world.plants, ...world.bulbs, ...world.sky, ...world.pickables];
   const batched = batchStatic(world.group, keep);
 
@@ -289,7 +310,9 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
     gsap.fromTo(h, { v: 1.4 }, { v: hoverRoot === root ? 1 : 0, duration: 0.6, ease: "power2.out", onUpdate: () => paintHL(h), overwrite: true });
   };
 
-  const tourShift = () => (phone() ? { sx: 0, sy: 0.2 } : { sx: 0.17, sy: 0.02 });
+  // the room sits right of the text column on desktop, and above the card on phones
+  const DESK_SHIFT = { sx: 0.17, sy: 0.02 };
+  const PHONE_SHIFT = { sx: 0, sy: 0.2 };
 
   const focusOn = (root: THREE.Object3D) => {
     if (!s3) return;
@@ -633,7 +656,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
 
   // -------------------------------------------------------------- input
   const hint = (e: PointerEvent) => {
-    if (!s3 || !started || phone()) return;
+    if (!s3 || !started || layoutPhone) return;
     if (uiHit(e)) {
       setHover(null);
       hud.tip(null);
@@ -653,7 +676,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
   window.addEventListener(
     "pointermove",
     (e) => {
-      if (phone() || e.pointerType === "touch") return;
+      if (layoutPhone || e.pointerType === "touch") return;
       lookX((e.clientX / innerWidth) * 2 - 1);
       lookY(-((e.clientY / innerHeight) * 2 - 1));
       hoverQueued = e;
@@ -864,12 +887,12 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
       camP.lerp(focus.p, focus.amt);
       camT.lerp(focus.t, focus.amt);
     }
-    const lookAmt = phone() ? 0 : 1 - focus.amt * 0.7;
+    const lookAmt = layoutPhone ? 0 : 1 - focus.amt * 0.7;
     camera.position.set(camP.x + look.x * 0.28 * lookAmt, camP.y + look.y * 0.14 * lookAmt, camP.z);
     camera.lookAt(camT);
-    const ts = tourShift();
+    const ts = layoutPhone ? PHONE_SHIFT : DESK_SHIFT;
     const sx = lerp(ts.sx, focus.sx, focus.amt) * ib;
-    const sy = lerp(ts.sy, focus.sy, focus.amt) * ib + (phone() ? 0.12 * (1 - ib) : 0);
+    const sy = lerp(ts.sy, focus.sy, focus.amt) * ib + (layoutPhone ? 0.12 * (1 - ib) : 0);
     camera.setViewOffset(W, H, -W * sx, H * sy, W, H);
 
     // ---- Davi follows the same number
@@ -935,8 +958,8 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
       aimKey(room);
     }
     const busy = moving || D.seated % 1 !== 0 || now < dynamicUntil;
-    if (tier.shadows && (busy || frame % 6 === 0)) world.key.shadow.needsUpdate = true;
-    if (tier.name === "high" && sEff < 1.2 && (busy || frame % 12 === 0)) world.pendant.shadow.needsUpdate = true;
+    if (tier.shadows && (busy || frame % 10 === 0)) world.key.shadow.needsUpdate = true;
+    if (tier.name === "high" && sEff < 1.2 && busy) world.pendant.shadow.needsUpdate = true;
 
     // ---- depth of field while something is in focus
     post?.setFocus(focus.amt, focus.dist, Math.max(0.8, focus.dist * 0.35));
