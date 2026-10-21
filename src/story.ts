@@ -30,8 +30,11 @@ export type SceneApi = {
   chapters: readonly string[];
   current: () => string;
   goToChapter: (id: string) => boolean;
-  focusObject: (id: string) => boolean;
+  /** `panel`: a side panel (desktop) or bottom sheet (phone) covers part of the screen; frame the object in the rest. */
+  focusObject: (id: string, opts?: { panel?: boolean }) => boolean;
   openCard: (kind: string, id: string) => boolean;
+  /** Davi's puppet, for a layer that poses him after the tour does each frame (the talk panel); null without WebGL. */
+  puppet: () => { scene: THREE.Scene; camera: THREE.PerspectiveCamera; davi: Davi; chair: THREE.Object3D } | null;
 };
 let api: SceneApi | null = null;
 export const sceneApi = () => api;
@@ -326,12 +329,12 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
   const DESK_SHIFT = { sx: 0.17, sy: 0.02 };
   const PHONE_SHIFT = { sx: 0, sy: 0.2 };
 
-  const focusOn = (root: THREE.Object3D) => {
+  const focusOn = (root: THREE.Object3D, panel = false) => {
     if (!s3) return;
     flash(root);
     if (rm()) return;
     const pick = root.userData.pick as Pick | undefined;
-    const sheet = hud.isOpen();
+    const sheet = hud.isOpen() || (panel && phone());
     box.setFromObject(root);
     box.getBoundingSphere(sphere);
     const r = Math.max(sphere.radius, FOCUS_R[pick?.id ?? ""] ?? 0.5);
@@ -351,7 +354,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
     p.z = Math.min(p.z, 7);
     // stay under the ceiling strip, or it slices the top off the boards on the back wall
     p.y = THREE.MathUtils.clamp(p.y, 0.6, 2.55);
-    focus.sx = phone() ? 0 : sheet ? -0.2 : 0;
+    focus.sx = phone() ? 0 : panel ? 0.12 : sheet ? -0.2 : 0;
     focus.sy = phone() ? (sheet ? 0.34 : 0.1) : 0;
     focus.dist = d;
     focus.root = root;
@@ -1129,11 +1132,11 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
       tour.goTo(i);
       return true;
     },
-    focusObject: (id) => {
+    focusObject: (id, opts) => {
       if (!s3) return false;
       const o = [...s3.byPick.entries()].find(([k]) => k.endsWith(`:${id}`))?.[1];
       if (!o) return false;
-      focusOn(o);
+      focusOn(o, !!opts?.panel);
       return true;
     },
     openCard: (kind, id) => {
@@ -1142,6 +1145,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
       hud.open(card);
       return true;
     },
+    puppet: () => (s3 ? { scene: s3.scene, camera, davi: s3.davi, chair: s3.world.chair } : null),
   };
 
   stopPrev = () => {
