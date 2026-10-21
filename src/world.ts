@@ -260,6 +260,7 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
   disc.position.set(F.coffee.x + 0.1, 0.41, F.coffee.z);
   addPick(disc);
 
+  await pause();
   const deskX = F.desk.x;
   const deskZ = F.desk.z;
   g.add(mesh(G.rbox(1.95, 0.07, 0.98, 0.03), P.desk, deskX, 0.76, deskZ));
@@ -337,6 +338,7 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
   pendant.shadow.bias = -0.002;
   g.add(pendant);
 
+  await pause();
   const speaker = boombox();
   speaker.position.set(deskX + 1.25, 0, -0.2);
   addPick(speaker);

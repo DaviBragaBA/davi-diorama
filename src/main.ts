@@ -19,7 +19,11 @@ const fonts = Promise.race([
   wait(3000),
 ]);
 
-import("./story")
+// the engine starts downloading right after the first paint, so it never delays it
+const afterPaint = () => new Promise<void>((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+
+afterPaint()
+  .then(() => import("./story"))
   .then(async (m) => {
     loader.stage(0.48, "montando a casa");
     await fonts;

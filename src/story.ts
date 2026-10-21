@@ -50,10 +50,10 @@ const yieldTask = () =>
     setTimeout(r, 0);
   });
 
-function probeGL() {
+/** The renderer's one WebGL2 context, or null (then the site runs without the 3D, quietly). */
+function openGL(canvas: HTMLCanvasElement) {
   try {
-    const c = document.createElement("canvas");
-    return (c.getContext("webgl2") ?? c.getContext("webgl")) as WebGL2RenderingContext | WebGLRenderingContext | null;
+    return canvas.getContext("webgl2", { alpha: false, antialias: false, depth: true, stencil: false, premultipliedAlpha: true, preserveDrawingBuffer: false, powerPreference: phone() ? "default" : "high-performance" });
   } catch {
     return null;
   }
@@ -74,18 +74,23 @@ type Scene3D = {
   batched: { before: number; after: number };
 };
 
-async function build3D(canvas: HTMLCanvasElement, loader: Loader): Promise<Scene3D | null> {
-  const probe = probeGL();
-  if (!probe) return null;
-  const { tier } = detectTier(probe);
-  (probe.getExtension("WEBGL_lose_context") as { loseContext?: () => void } | null)?.loseContext?.();
+const mark = (name: string) => performance.mark?.(`3d:${name}`);
 
+async function build3D(canvas: HTMLCanvasElement, loader: Loader): Promise<Scene3D | null> {
+  mark("start");
+  // One context only: the tier is read from the renderer's own GPU. Antialiasing lives in the
+  // post-processing buffer (MSAA), so the canvas itself never needs it.
+  const gl = openGL(canvas);
+  if (!gl) return null;
   let renderer: THREE.WebGLRenderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: !tier.post, alpha: false, stencil: false, powerPreference: phone() ? "default" : "high-performance" });
+    renderer = new THREE.WebGLRenderer({ canvas, context: gl, antialias: false, alpha: false, stencil: false });
   } catch {
     return null;
   }
+  const { tier } = detectTier(renderer.getContext());
+  mark("renderer");
+  await yieldTask();
   renderer.setPixelRatio(tier.dprMax);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   // with post-processing, ACES runs once in the final pass; without it, in every material
@@ -107,6 +112,7 @@ async function build3D(canvas: HTMLCanvasElement, loader: Loader): Promise<Scene
   loader.stage(0.62, "montando a casa");
   const world = await buildWorld(yieldTask);
   scene.add(world.group);
+  mark("world");
 
   loader.stage(0.7, "chamando o Davi e o Banguela");
   await yieldTask();
@@ -149,7 +155,10 @@ async function build3D(canvas: HTMLCanvasElement, loader: Loader): Promise<Scene
   }
 
   const keep: THREE.Object3D[] = [world.chair, world.mug, world.lamp, world.knapsack, world.steam, world.speaker, world.vinyl, world.ball, world.badge, world.monitor, ...world.packItems, ...world.plants, ...world.bulbs, ...world.sky, ...world.pickables];
-  const batched = batchStatic(world.group, keep);
+  await yieldTask();
+  const batched = await batchStatic(world.group, keep, yieldTask);
+  mark("batched");
+  await yieldTask();
 
   // shadows: a frustum around the rooms on screen, re-rendered only when something moves
   const key = world.key;
@@ -180,6 +189,8 @@ async function build3D(canvas: HTMLCanvasElement, loader: Loader): Promise<Scene
     try {
       const { createPost } = await postMod;
       post = createPost(renderer, scene, camera, tier);
+      mark("post");
+      await yieldTask();
     } catch {
       post = null;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1024,6 +1035,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
     camera.lookAt(est.t);
     try {
       await s3.renderer.compileAsync(s3.scene, camera);
+      mark("compiled");
     } catch {
       /* compile on first draw instead */
     }
@@ -1034,14 +1046,23 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
       const mat = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
       for (const t of [mat?.map, mat?.emissiveMap]) if (t && !seen.has(t)) seen.add(t);
     });
-    seen.forEach((t) => s3.renderer.initTexture(t));
+    let n = 0;
+    for (const t of seen) {
+      s3.renderer.initTexture(t);
+      if (++n % 3 === 0) await yieldTask();
+    }
     await yieldTask();
     // and compile the depth-of-field pass once, behind the intro, instead of on the first click
     if (s3.post) {
+      // first a plain frame (shadow and post shaders compile), then one with depth of field
+      s3.post.render(0);
+      await yieldTask();
       s3.post.setFocus(1, 6, 2);
       s3.post.render(0);
       s3.post.setFocus(0, 6, 2);
+      await yieldTask();
     }
+    mark("warm");
     loader.stage(0.98, "primeiro quadro");
     staticFrames = 4;
     sleeping = true;

@@ -16,7 +16,7 @@ function matKey(m: THREE.Material) {
  * siblings of the same material in the same room: hundreds of draw calls become a few dozen.
  * Clickable objects, animated parts and anything with a texture are left alone.
  */
-export function batchStatic(root: THREE.Object3D, keep: Iterable<THREE.Object3D>) {
+export async function batchStatic(root: THREE.Object3D, keep: Iterable<THREE.Object3D>, pause: () => Promise<void> = async () => {}) {
   const protect = new Set(keep);
   root.updateMatrixWorld(true);
   const locked = (o: THREE.Object3D) => {
@@ -41,7 +41,13 @@ export function batchStatic(root: THREE.Object3D, keep: Iterable<THREE.Object3D>
   });
   let before = 0;
   let after = 0;
+  let work = 0;
   for (const b of buckets.values()) {
+    // merging is the heaviest part of the start-up: hand the thread back every few buckets
+    if ((work += b.meshes.length) > 40) {
+      work = 0;
+      await pause();
+    }
     before += b.meshes.length;
     if (b.meshes.length < 2) {
       after += b.meshes.length;
