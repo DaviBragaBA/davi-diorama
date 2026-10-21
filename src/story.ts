@@ -253,7 +253,8 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
     });
     for (const l of s3.world.roomLights) lights.push({ l, x: l.position.x, base: l.intensity });
   }
-  const roomW = (x: number, cx: number) => THREE.MathUtils.clamp(1 - (Math.abs(x - cx) - 3) / 3.5, 0, 1);
+  const scr = new THREE.Vector3();
+  const roomW = (x: number, cx: number) => THREE.MathUtils.clamp(1 - (Math.abs(x - cx) - 2.6) / 2.4, 0, 1);
 
   // ?q=low|mid|high pins the quality tier (screenshots, support); otherwise it adapts to the device
   if (adaptive && new URLSearchParams(location.search).has("q")) adaptive.locked = true;
@@ -946,7 +947,15 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
     world.monLight.intensity = 2.2 + Math.sin(t * 2.3) * 0.12;
     for (const sc of screens) {
       const h = sc.root ? hl.get(sc.root) : undefined;
-      (sc.mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = sc.base * (0.16 + 0.84 * roomW(sc.x, camT.x)) * (1 + 0.55 * (h?.v ?? 0));
+      let w = roomW(sc.x, camT.x);
+      if (!layoutPhone && w < 1) {
+        // a screen that lands behind the text column fades further, so the words stay clean
+        sc.mesh.getWorldPosition(scr).project(camera);
+        w *= THREE.MathUtils.smoothstep(scr.x, -0.25, 0.1);
+      }
+      const mat = sc.mesh.material as THREE.MeshStandardMaterial;
+      mat.emissiveIntensity = sc.base * (0.1 + 0.9 * w) * (1 + 0.55 * (h?.v ?? 0));
+      mat.color.setScalar(0.16 + 0.84 * w);
     }
     for (const L of lights) L.l.intensity = L.base * (0.22 + 0.78 * roomW(L.x, camT.x));
 
@@ -1054,6 +1063,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
       focus: () => (focus.root?.userData.pick as Pick | undefined) ?? null,
       focusAmt: () => focus.amt,
       focusOn: (id: string) => api?.focusObject(id),
+      screens: () => screens.map((sc) => { const m = sc.mesh.material as THREE.MeshStandardMaterial; return [+sc.x.toFixed(1), +m.emissiveIntensity.toFixed(2), +m.color.r.toFixed(2)]; }),
       night: () => s3?.world.night.on,
       davi: () => (s3 ? { x: s3.davi.root.position.x, z: s3.davi.root.position.z, seated: s3.davi.pose.seated } : null),
       shot: (id: string, mode: "desk" | "phone", p: [number, number, number], t: [number, number, number]) => {

@@ -215,7 +215,8 @@ export function bindHud(root: HTMLElement): Hud {
 
     animate(kicker, { opacity: [0, 1], transform: ["translateX(-14px)", "translateX(0px)"] }, { duration: 0.6, ease: EASE_OUT, delay: 0.05 });
     animate(l1, { transform: ["translateY(108%) rotate(7deg)", "translateY(0%) rotate(0deg)"] }, { delay: stagger(0.028, { startDelay: 0.1 }), type: spring, stiffness: 210, damping: 22, mass: 0.9 });
-    animate(l2, { clipPath: ["inset(0 100% 0 0)", "inset(0 0% 0 0)"], opacity: [0.4, 1] }, { duration: 0.95, ease: [0.65, 0, 0.25, 1], delay: 0.32 });
+    // the wipe ends past the right edge, so a line wider than its column is never clipped
+    animate(l2, { clipPath: ["inset(-0.15em 100% -0.15em -0.1em)", "inset(-0.15em -0.3em -0.15em -0.1em)"], opacity: [0.4, 1] }, { duration: 0.95, ease: [0.65, 0, 0.25, 1], delay: 0.32 });
     animate(lead, { opacity: [0, 1], transform: ["translateY(16px)", "translateY(0px)"] }, { duration: 0.7, ease: EASE_OUT, delay: 0.42 });
     animate(ms, { opacity: [0, 1], transform: ["translateY(14px)", "translateY(0px)"] }, { duration: 0.6, ease: EASE_OUT, delay: stagger(0.09, { startDelay: 0.52 }) });
     animate(bars, { scale: ["0 1", "1 1"] }, { duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: stagger(0.09, { startDelay: 0.6 }) });
