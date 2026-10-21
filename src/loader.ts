@@ -16,7 +16,16 @@ const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function splitWords(el: HTMLElement) {
   const words = el.textContent!.trim().split(/\s+/);
-  el.innerHTML = words.map((w) => `<span class="w"><span>${w}</span></span>`).join(" ");
+  el.replaceChildren();
+  words.forEach((w, i) => {
+    if (i) el.append(" ");
+    const outer = document.createElement("span");
+    outer.className = "w";
+    const inner = document.createElement("span");
+    inner.textContent = w;
+    outer.append(inner);
+    el.append(outer);
+  });
   return [...el.querySelectorAll<HTMLElement>(".w > span")];
 }
 

@@ -27,11 +27,21 @@ const isPhone = () => matchMedia("(max-width: 900px)").matches;
 
 /** Words keep their spacing; letters ride inside a mask so they can rise from below the baseline. */
 function splitChars(el: HTMLElement) {
-  const text = el.textContent!.trim();
-  el.innerHTML = text
-    .split(/\s+/)
-    .map((w) => `<span class="w" aria-hidden="true">${[...w].map((ch) => `<span class="c">${ch}</span>`).join("")}</span>`)
-    .join(" ");
+  const words = el.textContent!.trim().split(/\s+/);
+  el.replaceChildren();
+  words.forEach((w, i) => {
+    if (i) el.append(" ");
+    const word = document.createElement("span");
+    word.className = "w";
+    word.setAttribute("aria-hidden", "true");
+    for (const ch of w) {
+      const c = document.createElement("span");
+      c.className = "c";
+      c.textContent = ch;
+      word.append(c);
+    }
+    el.append(word);
+  });
   return [...el.querySelectorAll<HTMLElement>(".c")];
 }
 
