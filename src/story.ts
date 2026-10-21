@@ -1015,6 +1015,20 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
       /* compile on first draw instead */
     }
     await yieldTask();
+    // upload every canvas texture now, so the first look at a room does not stall on a big upload
+    const seen = new Set<THREE.Texture>();
+    s3.scene.traverse((o) => {
+      const mat = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+      for (const t of [mat?.map, mat?.emissiveMap]) if (t && !seen.has(t)) seen.add(t);
+    });
+    seen.forEach((t) => s3.renderer.initTexture(t));
+    await yieldTask();
+    // and compile the depth-of-field pass once, behind the intro, instead of on the first click
+    if (s3.post) {
+      s3.post.setFocus(1, 6, 2);
+      s3.post.render(0);
+      s3.post.setFocus(0, 6, 2);
+    }
     loader.stage(0.98, "primeiro quadro");
     staticFrames = 4;
     sleeping = true;
