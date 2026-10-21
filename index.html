@@ -8,16 +8,50 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <title>Davi Braga — Business Analyst</title>
     <meta name="description" content="Davi Braga · Business Analyst, Core Limit Policies no Nubank. Um apartamento 3D que é o meu currículo." />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="canonical" href="https://davi-diorama.vercel.app/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Davi Braga" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:url" content="https://davi-diorama.vercel.app/" />
+    <meta property="og:title" content="Davi Braga — Business Analyst" />
+    <meta property="og:description" content="Davi Braga · Business Analyst, Core Limit Policies no Nubank. Um apartamento 3D que é o meu currículo." />
+    <meta property="og:image" content="https://davi-diorama.vercel.app/og.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="627" />
+    <meta property="og:image:alt" content="Apartamento 3D em massinha: o boneco do Davi trabalha na mesa, com o nome Davi Braga e o cargo de Business Analyst no Nubank ao lado." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Davi Braga — Business Analyst" />
+    <meta name="twitter:description" content="Davi Braga · Business Analyst, Core Limit Policies no Nubank. Um apartamento 3D que é o meu currículo." />
+    <meta name="twitter:image" content="https://davi-diorama.vercel.app/og.jpg" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Davi Braga Moreira",
+        "jobTitle": "Business Analyst",
+        "worksFor": { "@type": "Organization", "name": "Nubank" },
+        "url": "https://davi-diorama.vercel.app/",
+        "sameAs": ["https://www.linkedin.com/in/davibragamor/", "https://github.com/DaviBragaBA"]
+      }
+    </script>
+
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="https://fonts.gstatic.com/s/syne/v24/8vIH7w4qzmVxm2BL9G78HEY.woff2" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="https://fonts.gstatic.com/s/instrumentserif/v5/jizHRFtNs2ka5fXjeivQ4LroWlx-6zAjjH7Motmp5g.woff2" />
   </head>
   <body>
     <div id="stage">
-      <canvas id="view"></canvas>
+      <canvas id="view" role="img" aria-label="Apartamento 3D em massinha: Davi na mesa de trabalho, o cachorro Banguela e seis cômodos que contam o currículo."></canvas>
+      <div id="tour" aria-hidden="true" tabindex="-1"><div class="track"></div></div>
       <div id="scrim" aria-hidden="true"></div>
       <div id="grain" aria-hidden="true"></div>
       <div id="vignette" aria-hidden="true"></div>
+      <div id="fade" aria-hidden="true"></div>
 
       <header id="brand">
         <span class="mark"></span>
@@ -25,24 +59,29 @@
         <em>Business Analyst · Nubank</em>
       </header>
 
-      <section id="slide" aria-live="polite"></section>
+      <main id="main">
+        <section id="slide" aria-live="polite"></section>
+      </main>
 
       <nav id="rail" aria-label="seções"></nav>
 
       <footer id="bar">
-        <div id="counter"><b>00</b><span>/ 06</span></div>
+        <div id="counter" role="group" aria-label="01 de 06"><span class="roll" aria-hidden="true"><b>01</b></span><span aria-hidden="true">/ 06</span></div>
         <p class="hint desk"><kbd>←</kbd><kbd>→</kbd> ou scroll · <kbd>M</kbd> sumário · <kbd>C</kbd> e-mail · clica nas coisas</p>
         <p class="hint mob">desliza · toca no 3D e nos chips</p>
         <div class="tools">
           <button id="open-index" type="button">Sumário</button>
-          <button id="sound" type="button" aria-label="som"><i></i><i></i><i></i><i></i></button>
+          <button id="sound" type="button" aria-label="som" aria-pressed="false"><i></i><i></i><i></i><i></i></button>
         </div>
+        <div id="progress" aria-hidden="true"><i></i></div>
       </footer>
 
+      <button id="unfocus" type="button">← voltar <kbd class="desk">esc</kbd></button>
+      <div id="tip" aria-hidden="true"></div>
       <div id="toast" role="status"></div>
 
       <div id="dossier">
-        <aside id="dossier-sheet">
+        <aside id="dossier-sheet" role="dialog" aria-modal="true" aria-label="detalhes">
           <button id="dossier-close" type="button">fechar <kbd class="desk">esc</kbd></button>
           <div id="dossier-body"></div>
         </aside>
@@ -53,8 +92,15 @@
         <h1><span>Davi</span><span>Braga</span></h1>
         <p class="sub">Um apartamento que é o meu currículo. Entra.</p>
         <button class="cta" type="button">entrar <i class="desk">↵</i></button>
+        <div class="load" role="progressbar" aria-label="carregando o 3D" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="load-bar"><i></i></div>
+          <p><b class="load-n">00</b><span class="load-t">carregando</span></p>
+        </div>
       </div>
     </div>
+    <noscript>
+      <p class="nojs">Este currículo em 3D precisa de JavaScript. Davi Braga · Business Analyst no Nubank · <a href="https://www.linkedin.com/in/davibragamor/">LinkedIn</a></p>
+    </noscript>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

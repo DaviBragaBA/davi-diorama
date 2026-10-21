@@ -5,8 +5,14 @@ let timer = 0;
 
 function ac() {
   if (!ctx) ctx = new AudioContext();
-  void ctx.resume();
+  if (ctx.state !== "running") ctx.resume().catch(() => {});
   return ctx;
+}
+
+/** Sound effects only after the visitor has interacted: browsers block audio before that anyway. */
+function canSound() {
+  const ua = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
+  return !ua || ua.hasBeenActive;
 }
 
 function tone(freq: number, t0: number, dur: number, gain: number, type: OscillatorType, out: AudioNode) {
@@ -79,11 +85,13 @@ export function musicOn() {
 }
 
 export function sfxClick() {
+  if (!canSound()) return;
   const c = ac();
   tone(880, c.currentTime, 0.08, 0.08, "square", c.destination);
 }
 
 export function sfxWhoosh() {
+  if (!canSound()) return;
   const c = ac();
   const n = c.createBufferSource();
   const buf = c.createBuffer(1, c.sampleRate * 0.35, c.sampleRate);
@@ -103,6 +111,7 @@ export function sfxWhoosh() {
 }
 
 export function sfxBark() {
+  if (!canSound()) return;
   const c = ac();
   const t0 = c.currentTime;
   [0, 0.14].forEach((off) => {
@@ -126,6 +135,7 @@ export function sfxBark() {
 }
 
 export function sfxPop(freq = 520) {
+  if (!canSound()) return;
   const c = ac();
   tone(freq, c.currentTime, 0.14, 0.12, "sine", c.destination);
   tone(freq * 1.5, c.currentTime + 0.03, 0.12, 0.06, "sine", c.destination);
