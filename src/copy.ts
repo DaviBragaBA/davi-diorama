@@ -43,7 +43,7 @@ export const SLIDES: Slide[] = [
     metrics: [
       { value: getAge(), label: "anos" },
       { value: yearsData, decimals: 1, suffix: "+", label: "anos em dados" },
-      { value: experiences.length, label: "experiências, Nubank incluído" },
+      { value: experiences.length, label: "experiências" },
     ],
     chips: [
       { kind: "egg", id: "monitor", label: "PC", meta: "clica" },
@@ -128,7 +128,7 @@ export const SLIDES: Slide[] = [
     num: "06",
     kicker: "Contato",
     title: ["Bora", "conversar"],
-    lead: "Me chama por e-mail ou LinkedIn. Respondo em menos de 24h.",
+    lead: "Me chama por e-mail ou LinkedIn: os dois estão logo aqui embaixo.",
     metrics: [
       { value: 24, prefix: "<", suffix: "h", label: "pra responder" },
       { value: 2, label: "canais pra falar comigo" },
