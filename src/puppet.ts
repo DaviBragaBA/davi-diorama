@@ -42,7 +42,8 @@ export class Davi {
   constructor() {
     this.root.scale.setScalar(1.15);
     this.build();
-    this.root.add(blobShadow(0.55, 0.28));
+    // the contact shadow keeps him planted on a light floor, where the sun shadow alone is faint
+    this.root.add(blobShadow(0.62, 0.42));
     this.last.copy(this.root.position);
   }
 

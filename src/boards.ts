@@ -84,10 +84,10 @@ export function liveBars(title: string, sub: string, x: number, y: number, z: nu
     mono(ctx, kpiLabel, c.width - 56, 84, 26);
     display(ctx, `+${kpi.toFixed(1)}%`, c.width - 56, 170, 64, ACC);
     // every number on these boards is an animated illustration, and the board says so
-    mono(ctx, "ILUSTRAÇÃO · DADO SINTÉTICO", c.width - 56, 204, 18);
+    mono(ctx, "ILUSTRAÇÃO · DADO SINTÉTICO", c.width - 56, 214, 36, "#9aa3b2");
     ctx.textAlign = "left";
     ctx.fillStyle = "#1c212b";
-    ctx.fillRect(56, 215, c.width - 112, 2);
+    ctx.fillRect(56, 232, c.width - 112, 2);
     const baseY = 690;
     const bw = (c.width - 112) / N - 14;
     for (let i = 0; i < N; i++) {
@@ -242,7 +242,7 @@ export function deskModes() {
         ctx.fillStyle = n === 0 ? ACC : "#2f6d6a";
         ctx.fillRect(44, 290 + n * 58, 936 * v * g * breathe, 36);
       });
-      mono(ctx, "ilustração · não é KPI publicado", 44, 548, 18);
+      mono(ctx, "ilustração · não é KPI publicado", 44, 560, 32, "#9aa3b2");
     } else if (mode === "sql") {
       mono(ctx, "databricks · notebook", 44, 70, 26, ACC);
       const lines = ["SELECT risk_band,", "  SUM(purchase_volume) AS vol,", "  AVG(daily_balance) AS bal", "FROM limit_experiments", "WHERE cohort = 'test'", "GROUP BY 1 ORDER BY 1;"];
@@ -273,7 +273,7 @@ export function deskModes() {
     } else if (mode === "experimento") {
       mono(ctx, "lab · teste vs. controle", 44, 70, 26, ACC);
       display(ctx, "experimento", 44, 170, 88);
-      mono(ctx, "ilustração · não é KPI publicado", 44, 220, 22);
+      mono(ctx, "ilustração · não é KPI publicado", 44, 226, 32, "#9aa3b2");
       [
         ["teste", 0.74, ACC],
         ["controle", 0.51, "#2f6d6a"],

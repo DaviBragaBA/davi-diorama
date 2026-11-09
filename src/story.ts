@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import gsap from "gsap";
-import { INK } from "./clay";
+import { SKY_DAY, SKY_NIGHT } from "./clay";
 import { inspectCard, pickLabel, SLIDES, slideOf } from "./copy";
 import { bindHud, magnetic, microButtons } from "./hud";
 import { Banguela, Davi } from "./puppet";
@@ -101,15 +101,16 @@ async function build3D(canvas: HTMLCanvasElement, loader: Loader): Promise<Scene
   renderer.toneMappingExposure = 1.05;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = tier.softShadows ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
-  renderer.setClearColor(INK, 1);
+  renderer.setClearColor(SKY_DAY, 1);
   renderer.info.autoReset = false;
 
   // the post-processing chunk downloads while the room is being built
   const postMod = tier.post ? import("./post") : null;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(INK);
-  scene.fog = new THREE.Fog(INK, 12, 34);
+  // warm peach behind the walls and in the fog by day; the night mode fades both to ink
+  scene.background = new THREE.Color(SKY_DAY);
+  scene.fog = new THREE.Fog(SKY_DAY, 12, 34);
   const camera = new THREE.PerspectiveCamera(phone() ? 56 : 34, 1, 0.05, 80);
 
   loader.stage(0.62, "montando a casa");
@@ -221,7 +222,6 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
   let introBlend = { amt: 0 };
   let sleeping = true;
   let staticFrames = 0;
-  let raf = 0;
   let last = performance.now();
   let W = innerWidth;
   let H = innerHeight;
@@ -254,7 +254,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
   // Room-by-room lighting: screens and colored lights of rooms away from the camera dim down,
   // so each chapter's room is the lit one and the rest of the apartment waits in the dark.
   const screens: { mesh: THREE.Mesh; x: number; base: number; root: THREE.Object3D | undefined }[] = [];
-  const lights: { l: THREE.PointLight; x: number; base: number }[] = [];
+  const lights: { l: THREE.PointLight; x: number }[] = [];
   if (s3) {
     const v = new THREE.Vector3();
     s3.world.group.updateMatrixWorld(true);
@@ -265,7 +265,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
       m.getWorldPosition(v);
       screens.push({ mesh: m, x: v.x, base: mat.emissiveIntensity, root: s3.rootOf.get(m) });
     });
-    for (const l of s3.world.roomLights) lights.push({ l, x: l.position.x, base: l.intensity });
+    for (const l of s3.world.roomLights) lights.push({ l, x: l.position.x });
   }
   const scr = new THREE.Vector3();
   const roomW = (x: number, cx: number) => THREE.MathUtils.clamp(1 - (Math.abs(x - cx) - 2.6) / 2.4, 0, 1);
@@ -326,7 +326,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
   };
 
   // the room sits right of the text column on desktop, and above the card on phones
-  const DESK_SHIFT = { sx: 0.17, sy: 0.02 };
+  const DESK_SHIFT = { sx: 0.1, sy: 0.02 };
   const PHONE_SHIFT = { sx: 0, sy: 0.2 };
 
   const focusOn = (root: THREE.Object3D, panel = false) => {
@@ -383,27 +383,35 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
   let plantHits = 0;
   let ballBusy = false;
   let waveUntil = 0;
+  // each string bulb has a "dip" (1 = off, 0 = normal glow) that the frame loop folds into its shimmer
+  const bulbDip = s3 ? s3.world.bulbs.map(() => ({ v: 0 })) : [];
+  const flashBulbs = () => {
+    if (rm()) return;
+    bulbDip.forEach((d, i) => gsap.fromTo(d, { v: 1 }, { v: 0, duration: 0.3, delay: i * 0.05, overwrite: true }));
+  };
 
+  const skyDay = new THREE.Color(SKY_DAY);
+  const skyNight = new THREE.Color(SKY_NIGHT);
+  /** Paints the day/night blend: lights, surfaces, window sky (in world) and the backdrop and fog (here). */
+  const paintLook = () => {
+    if (!s3) return;
+    const { world, scene } = s3;
+    world.applyLook();
+    (scene.background as THREE.Color).copy(skyNight).lerp(skyDay, world.look.day);
+    scene.fog!.color.copy(scene.background as THREE.Color);
+    // lighter walls would wash out in bloom: by day the glow is held back, at night it is the full moody one
+    s3.post?.setBloom(0.55 + 0.45 * (1 - world.look.day));
+  };
+  paintLook();
   const nightOn = () => {
     if (!s3) return;
-    const { world, scene, renderer } = s3;
+    const { world, renderer } = s3;
     world.night.on = !world.night.on;
     const on = world.night.on;
-    const col = new THREE.Color(on ? "#05060a" : INK);
-    gsap.to(scene.background as THREE.Color, { r: col.r, g: col.g, b: col.b, duration: 0.8 });
-    gsap.to(scene.fog!.color, { r: col.r, g: col.g, b: col.b, duration: 0.8 });
-    world.group.traverse((o) => {
-      if (o instanceof THREE.DirectionalLight) {
-        // remember the daylight value before the first dimming, so "luz do dia" really comes back
-        o.userData.base ??= o.intensity;
-        gsap.to(o, { intensity: on ? 0.25 : o.userData.base, duration: 0.8 });
-      }
-      if (o instanceof THREE.HemisphereLight) gsap.to(o, { intensity: on ? 0.12 : 0.55, duration: 0.8 });
-    });
-    gsap.to(world.lampLight, { intensity: on ? 14 : 8, duration: 0.6 });
-    gsap.to(world.pendant, { intensity: on ? 16 : 10, duration: 0.6 });
-    gsap.to(world.lampShade.material as THREE.MeshStandardMaterial, { emissiveIntensity: on ? 0.9 : 0.32, duration: 0.6 });
-    gsap.to(renderer, { toneMappingExposure: on ? 0.9 : 1.05, duration: 0.8 });
+    // the HUD has a dark variant under html.night
+    document.documentElement.classList.toggle("night", on);
+    gsap.to(world.look, { day: on ? 0 : 1, duration: rm() ? 0.01 : 0.9, ease: "power2.inOut", onUpdate: paintLook, overwrite: true });
+    gsap.to(renderer, { toneMappingExposure: on ? 0.9 : 1.05, duration: rm() ? 0.01 : 0.8, overwrite: true });
     hud.toast(on ? "modo noite · só o abajur" : "luz do dia");
     sfxPop(on ? 330 : 520);
     poke(1);
@@ -417,13 +425,13 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
           x: world.knapsack.position.x,
           y: world.knapsack.position.y + 0.25,
           z: world.knapsack.position.z,
-          duration: 0.5,
-          delay: i * 0.08,
+          duration: rm() ? 0.01 : 0.5,
+          delay: rm() ? 0 : i * 0.08,
           ease: "back.in(1.4)",
-          onComplete: () => void gsap.to(it.scale, { x: 0.01, y: 0.01, z: 0.01, duration: 0.2 }),
+          onComplete: () => void gsap.to(it.scale, { x: 0.01, y: 0.01, z: 0.01, duration: rm() ? 0.01 : 0.2 }),
         });
       });
-      gsap.fromTo(world.knapsack.scale, { x: 1, y: 1 }, { x: 1.12, y: 0.9, duration: 0.25, yoyo: true, repeat: 1, delay: 0.5 });
+      if (!rm()) gsap.fromTo(world.knapsack.scale, { x: 1, y: 1 }, { x: 1.12, y: 0.9, duration: 0.25, yoyo: true, repeat: 1, delay: 0.5, overwrite: true });
       poke(1.5);
     }
     hud.toast("TCC · leilão da mochila");
@@ -456,7 +464,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
           notebook: "notebook de análise",
         };
         hud.toast(labels[mode] ?? mode);
-        gsap.fromTo(world.monitor.scale, { x: 0.96, y: 0.96 }, { x: 1, y: 1, duration: 0.3, ease: "back.out(2)" });
+        if (!rm()) gsap.fromTo(world.monitor.scale, { x: 0.96, y: 0.96 }, { x: 1, y: 1, duration: 0.3, ease: "back.out(2)", overwrite: true });
         return;
       }
       case "lamp":
@@ -465,20 +473,20 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
         const on = toggleMusic();
         hud.setSound(on);
         hud.toast(on ? "lo-fi ligado · quadros pulsam no beat" : "silêncio");
-        gsap.fromTo(world.speaker.scale, { y: 0.8 }, { y: 1, duration: 0.4, ease: "elastic.out(1, 0.4)" });
+        if (!rm()) gsap.fromTo(world.speaker.scale, { y: 0.8 }, { y: 1, duration: 0.4, ease: "elastic.out(1, 0.4)", overwrite: true });
         return;
       }
       case "vinyl": {
         const on = musicOn() || toggleMusic();
         hud.setSound(on);
-        gsap.fromTo(world.vinyl.rotation, { y: 0 }, { y: Math.PI * 4, duration: 1.6, ease: "power2.out" });
+        if (!rm()) gsap.fromTo(world.vinyl.rotation, { y: 0 }, { y: Math.PI * 4, duration: 1.6, ease: "power2.out", overwrite: true });
         hud.toast("lado B · o Banguela gosta");
         dog.bark = 0.6;
         return;
       }
       case "mug": {
         mugHits++;
-        gsap.fromTo(world.mug.scale, { y: 0.7 }, { y: 1, duration: 0.35, ease: "elastic.out(1, 0.5)" });
+        if (!rm()) gsap.fromTo(world.mug.scale, { y: 0.7 }, { y: 1, duration: 0.35, ease: "elastic.out(1, 0.5)", overwrite: true });
         world.steam.visible = mugHits >= 2;
         hud.toast(["primeiro café", "segundo café · agora sim", "terceiro · Databricks não dorme", "quarto · vai dar ruim"][Math.min(mugHits - 1, 3)]);
         sfxPop(600 + mugHits * 60);
@@ -487,25 +495,25 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
       case "banguela": {
         dog.bark = 1;
         sfxBark();
-        gsap.fromTo(dog.root.position, { y: 0 }, { y: 0.16, duration: 0.18, yoyo: true, repeat: 1, ease: "power2.out" });
+        if (!rm()) gsap.fromTo(dog.root.position, { y: 0 }, { y: 0.16, duration: 0.18, yoyo: true, repeat: 1, ease: "power2.out", overwrite: true });
         hud.toast(["au!", "Banguela · pitbull · 100% amor", "ele quer o vinil", "au au"][Math.floor(Math.random() * 4)]);
         return;
       }
       case "photo": {
         hud.toast("é ele. brindle, peito branco, corrente e bandana.");
-        gsap.to(dog.root.rotation, { y: 0.3, duration: 0.5 });
+        gsap.to(dog.root.rotation, { y: 0.3, duration: rm() ? 0.01 : 0.5, overwrite: true });
         dog.bark = 0.5;
         return;
       }
       case "davi": {
         davi.wink();
         hud.toast("oi. usa ← → pra andar pela casa");
-        gsap.fromTo(davi.root.scale, { y: 1.15 }, { y: 1.15 * 1.03, duration: 0.15, yoyo: true, repeat: 1 });
+        if (!rm()) gsap.fromTo(davi.root.scale, { y: 1.15 }, { y: 1.15 * 1.03, duration: 0.15, yoyo: true, repeat: 1, overwrite: true });
         return;
       }
       case "mail": {
         hud.copyMail();
-        world.bulbs.forEach((b, i) => gsap.fromTo(b.material as THREE.MeshStandardMaterial, { emissiveIntensity: 0 }, { emissiveIntensity: 1.8, duration: 0.3, delay: i * 0.05 }));
+        flashBulbs();
         waveUntil = performance.now() + 2500;
         sfxPop(700);
         const card = inspectCard("contact", "card");
@@ -514,7 +522,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
       }
       case "badge": {
         hud.copyMail();
-        gsap.fromTo(world.badge.scale, { x: 0.92, y: 1.08 }, { x: 1, y: 1, duration: 0.35, ease: "back.out(2)" });
+        if (!rm()) gsap.fromTo(world.badge.scale, { x: 0.92, y: 1.08 }, { x: 1, y: 1, duration: 0.35, ease: "back.out(2)", overwrite: true });
         const card = inspectCard("contact", "card");
         if (card) hud.open(card);
         sfxPop(720);
@@ -522,7 +530,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
       }
       case "plant": {
         plantHits++;
-        world.plants.forEach((p) => gsap.to(p.children[1].scale, { x: 1 + plantHits * 0.15, y: 1 + plantHits * 0.2, z: 1 + plantHits * 0.15, duration: 0.6, ease: "elastic.out(1, 0.5)" }));
+        world.plants.forEach((p) => gsap.to(p.children[1].scale, { x: 1 + plantHits * 0.15, y: 1 + plantHits * 0.2, z: 1 + plantHits * 0.15, duration: rm() ? 0.01 : 0.6, ease: "elastic.out(1, 0.5)", overwrite: true }));
         hud.toast(plantHits > 3 ? "regou demais" : "cresceu");
         sfxPop(380 + plantHits * 40);
         return;
@@ -543,17 +551,13 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
         return;
       }
       case "window": {
-        world.sky.forEach((s) => {
-          const m = s.material as THREE.MeshStandardMaterial;
-          const c = new THREE.Color(world.night.on ? "#2a4a6e" : "#0b1020");
-          gsap.to(m.color, { r: c.r, g: c.g, b: c.b, duration: 0.6 });
-          gsap.to(m.emissive, { r: c.r, g: c.g, b: c.b, duration: 0.6 });
-        });
+        // second click brings the day sky back
+        gsap.to(world.look, { dusk: world.look.dusk > 0.5 ? 0 : 1, duration: rm() ? 0.01 : 0.6, onUpdate: world.applyLook, overwrite: "auto" });
         hud.toast("São Paulo lá fora");
         return;
       }
       case "lights": {
-        world.bulbs.forEach((b, i) => gsap.fromTo(b.material as THREE.MeshStandardMaterial, { emissiveIntensity: 0 }, { emissiveIntensity: 1.8, duration: 0.3, delay: i * 0.05 }));
+        flashBulbs();
         hud.toast("luzinha da varanda");
         sfxPop(800);
         return;
@@ -561,11 +565,14 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
       case "ball": {
         if (ballBusy) return;
         ballBusy = true;
-        gsap
-          .timeline({ onComplete: () => void (ballBusy = false) })
-          .to(world.ball.position, { y: 1.1, duration: 0.35, ease: "power2.out" })
-          .to(world.ball.position, { y: 0.14, duration: 0.4, ease: "bounce.out" });
-        gsap.to(world.ball.rotation, { x: "+=6", duration: 0.75 });
+        if (rm()) ballBusy = false;
+        else {
+          gsap
+            .timeline({ onComplete: () => void (ballBusy = false) })
+            .to(world.ball.position, { y: 1.1, duration: 0.35, ease: "power2.out" })
+            .to(world.ball.position, { y: 0.14, duration: 0.4, ease: "bounce.out" });
+          gsap.to(world.ball.rotation, { x: "+=6", duration: 0.75 });
+        }
         hud.toast("gol");
         return;
       }
@@ -688,6 +695,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
     hud.tip(hit ? pickLabel(hit.pick.kind, hit.pick.id) : null, e.clientX, e.clientY);
   };
   let hoverQueued: PointerEvent | null = null;
+  let lastHintAt = 0;
   let lastMove: PointerEvent | null = null;
   const prevCam = new THREE.Vector3();
   const look = { x: 0, y: 0 };
@@ -873,7 +881,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
     if (sleeping) {
       sleeping = false;
       last = performance.now();
-      raf = requestAnimationFrame(loop);
+      gsap.ticker.add(loop);
     }
   }
 
@@ -886,11 +894,11 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
     if (!started) {
       if (staticFrames <= 0 || !loader.isReady()) {
         sleeping = true;
+        gsap.ticker.remove(loop);
         return;
       }
       staticFrames--;
     }
-    raf = requestAnimationFrame(loop);
     const { renderer, scene, world, davi, dog, post } = s3;
     renderer.info.reset();
     const dt = Math.min(dtMs / 1000, 0.05);
@@ -946,7 +954,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
 
     // ---- screens: only the ones on screen redraw
     if (sEff < 0.85 || focus.root === world.monitor) world.desk.update(t);
-    for (const b of world.boards) if (Math.abs(b.mesh.position.x - camT.x) < 6.5) b.update(t);
+    for (const b of world.boards) if (Math.abs(b.mesh.position.x - camT.x) < 5) b.update(t);
     if (musicOn()) {
       const bt = Math.floor(t * 2);
       if (bt !== beat) {
@@ -963,8 +971,9 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
       });
     }
     world.bulbs.forEach((b, i) => {
-      (b.material as THREE.MeshStandardMaterial).emissiveIntensity = 1.5 + Math.sin(t * 3 + i) * 0.4;
+      (b.material as THREE.MeshStandardMaterial).emissiveIntensity = (1.5 + Math.sin(t * 3 + i) * 0.4) * (1 - bulbDip[i].v);
     });
+    world.updateDust(t, rm());
     world.monLight.intensity = 2.2 + Math.sin(t * 2.3) * 0.12;
     for (const sc of screens) {
       const h = sc.root ? hl.get(sc.root) : undefined;
@@ -972,13 +981,15 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
       if (!layoutPhone && w < 1) {
         // a screen that lands behind the text column fades further, so the words stay clean
         sc.mesh.getWorldPosition(scr).project(camera);
-        w *= THREE.MathUtils.smoothstep(scr.x, -0.25, 0.1);
+        w *= THREE.MathUtils.smoothstep(scr.x, -0.1, 0.35);
       }
       const mat = sc.mesh.material as THREE.MeshStandardMaterial;
-      mat.emissiveIntensity = sc.base * (0.1 + 0.9 * w) * (1 + 0.55 * (h?.v ?? 0));
-      mat.color.setScalar(0.16 + 0.84 * w);
+      mat.emissiveIntensity = sc.base * (0.03 + 0.97 * w) * (1 + 0.55 * (h?.v ?? 0));
+      mat.color.setScalar(0.05 + 0.95 * w);
     }
-    for (const L of lights) L.l.intensity = L.base * (0.22 + 0.78 * roomW(L.x, camT.x));
+    // by day the rooms away from the camera keep half their light (an apartment lit by the sun); at night only the lamp room glows
+    const floorL = THREE.MathUtils.lerp(0.22, 0.5, world.look.day);
+    for (const L of lights) L.l.intensity = (L.l.userData.base as number) * (floorL + (1 - floorL) * roomW(L.x, camT.x));
 
     // ---- shadows: follow the room on screen, redraw only when something moves
     const tier = adaptive!.tier;
@@ -999,10 +1010,11 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
     // the room also moves under a still mouse: re-check what is under it while the camera travels
     const camMoved = prevCam.distanceToSquared(camera.position) > 1e-6;
     prevCam.copy(camera.position);
-    if (!hoverQueued && camMoved && lastMove && frame % 4 === 0) hoverQueued = lastMove;
-    if (hoverQueued) {
+    if (!hoverQueued && camMoved && lastMove && now - lastHintAt > 100) hoverQueued = lastMove;
+    if (hoverQueued && now - lastHintAt >= 90) {
       hint(hoverQueued);
       hoverQueued = null;
+      lastHintAt = now;
     }
     if (started && document.visibilityState === "visible") adaptive!.sample(dtMs, now);
   }
@@ -1014,7 +1026,20 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
     const a = w / h;
     return THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(15.5)) / a)), 44, 64);
   };
-  const resize = () => {
+  let sizeRaf = 0;
+  let scrollH = 0;
+  const applySize = () => {
+    sizeRaf = 0;
+    if (!s3) return;
+    s3.renderer.setPixelRatio(adaptive?.dpr ?? s3.tier.dprMax);
+    s3.renderer.setSize(W, H, false);
+    s3.post?.setSize(W, H);
+    camera.aspect = W / H;
+    camera.fov = fovFor(W, H);
+    camera.updateProjectionMatrix();
+    if (!started) wake();
+  };
+  const resize = (now = false) => {
     W = stage.clientWidth || innerWidth;
     H = stage.clientHeight || innerHeight;
     const p = phone();
@@ -1022,20 +1047,20 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
       layoutPhone = p;
       path.build(p);
       tour.refresh();
+    } else if (scroller.clientHeight !== scrollH && scrollH) {
+      // ScrollTrigger refreshes itself on window resize only; the mobile toolbar changes the scroller without one
+      tour.refresh();
     }
-    if (s3) {
-      s3.renderer.setPixelRatio(adaptive?.dpr ?? s3.tier.dprMax);
-      s3.renderer.setSize(W, H, false);
-      s3.post?.setSize(W, H);
-      camera.aspect = W / H;
-      camera.fov = fovFor(W, H);
-      camera.updateProjectionMatrix();
-      if (!started) wake();
-    }
+    scrollH = scroller.clientHeight;
+    // a burst of resize events costs one renderer resize per frame, not one per event
+    if (now) {
+      cancelAnimationFrame(sizeRaf);
+      applySize();
+    } else if (!sizeRaf) sizeRaf = requestAnimationFrame(applySize);
   };
-  resize();
-  window.addEventListener("resize", resize, { signal });
-  visualViewport?.addEventListener("resize", resize, { signal });
+  resize(true);
+  window.addEventListener("resize", () => resize(), { signal });
+  visualViewport?.addEventListener("resize", () => resize(), { signal });
 
   // -------------------------------------------------------------- warm up, then wait at the door
   if (s3) {
@@ -1149,8 +1174,13 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
   };
 
   stopPrev = () => {
-    cancelAnimationFrame(raf);
+    document.documentElement.classList.remove("night");
+    gsap.ticker.remove(loop);
+    cancelAnimationFrame(sizeRaf);
     gsap.ticker.remove(progressTick);
+    focusTw?.kill();
+    lookX.tween.kill();
+    lookY.tween.kill();
     ac.abort();
     tour.kill();
     s3?.post?.dispose();

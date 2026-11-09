@@ -19,28 +19,28 @@ const v = (a: [number, number, number]) => new THREE.Vector3(...a);
  */
 export const SHOTS: Record<string, Shot> = {
   desk: {
-    desk: { p: [-1.2, 3.0, 7.6], t: [-0.7, 1.05, -1.0] },
+    desk: { p: [-1.0, 3.0, 7.6], t: [0.2, 1.05, -1.0] },
     phone: { p: [-1.2, 3.0, 4.6], t: [1.0, 1.0, -0.9] },
   },
   war: {
-    desk: { p: [4.2, 2.75, 8.3], t: [6.25, 1.45, -1.3] },
-    phone: { p: [5.5, 2.5, 6.4], t: [6.6, 1.4, -1.3] },
+    desk: { p: [5.65, 2.75, 8.3], t: [6.4, 1.45, -1.3] },
+    phone: { p: [5.50, 3.0, 6.5], t: [6.60, 1.15, -1.3] },
   },
   flash: {
-    desk: { p: [9.25, 2.75, 8.3], t: [11.3, 1.45, -1.3] },
-    phone: { p: [10.55, 2.5, 6.4], t: [11.65, 1.4, -1.3] },
+    desk: { p: [11.7, 2.25, 7.2], t: [11.45, 1.4, -1.3] },
+    phone: { p: [10.55, 3.4, 6.6], t: [11.65, 1.0, -1.3] },
   },
   studio: {
-    desk: { p: [14.2, 2.75, 8.3], t: [16.25, 1.45, -1.3] },
-    phone: { p: [15.5, 2.5, 6.4], t: [16.6, 1.4, -1.3] },
+    desk: { p: [15.65, 3.3, 9.2], t: [16.4, 1.25, -1.3] },
+    phone: { p: [15.50, 3.4, 6.6], t: [16.60, 1.0, -1.3] },
   },
   lab: {
-    desk: { p: [19.25, 2.75, 8.3], t: [21.3, 1.45, -1.3] },
-    phone: { p: [20.55, 2.5, 6.4], t: [21.65, 1.4, -1.3] },
+    desk: { p: [20.7, 2.6, 8.3], t: [21.45, 1.5, -1.3] },
+    phone: { p: [20.55, 3.0, 6.5], t: [21.65, 1.15, -1.3] },
   },
   balcony: {
-    desk: { p: [24.45, 2.75, 8.3], t: [26.5, 1.45, -1.3] },
-    phone: { p: [25.75, 2.5, 6.4], t: [26.85, 1.4, -1.3] },
+    desk: { p: [26.4, 2.5, 7.6], t: [26.65, 1.4, -1.3] },
+    phone: { p: [25.75, 3.2, 6.6], t: [26.85, 1.1, -1.3] },
   },
 };
 
@@ -126,6 +126,7 @@ export function createTour(scroller: HTMLElement, count: number, opts: { reduced
   };
   sizeTrack();
 
+  const mq = matchMedia("(prefers-reduced-motion: reduce)");
   let st: ScrollTrigger;
   const make = () => {
     st = ScrollTrigger.create({
@@ -145,6 +146,12 @@ export function createTour(scroller: HTMLElement, count: number, opts: { reduced
     });
   };
   make();
+  const onMotionPref = () => {
+    // scrub is fixed when a ScrollTrigger is created, so a change of the setting rebuilds it
+    st.kill();
+    make();
+  };
+  mq.addEventListener("change", onMotionPref);
 
   let cur = 0;
   let target = 0;
@@ -216,6 +223,7 @@ export function createTour(scroller: HTMLElement, count: number, opts: { reduced
     onUserScroll: (fn) => userFns.push(fn),
     kill: () => {
       gsap.ticker.remove(tick);
+      mq.removeEventListener("change", onMotionPref);
       scroller.removeEventListener("scroll", onScroll);
       navTween?.kill();
       st.kill();
