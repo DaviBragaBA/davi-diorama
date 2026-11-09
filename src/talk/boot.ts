@@ -3,7 +3,7 @@ import type { SceneApi } from "../story";
 import type { TalkPanel } from "./panel";
 
 /**
- * Entry points for "Fale com o Davi": a floating button, a chip in the HUD bar and the T key.
+ * Entry point for "Fale com o Davi": one button (in the HUD bar on desktop, top right on phones) and the T key.
  * This chunk is tiny; the panel (questions, answers, avatar layer) loads on first open.
  */
 
@@ -14,14 +14,12 @@ let sceneApi: (() => SceneApi | null) | null = null;
 let panel: TalkPanel | null = null;
 let loading: Promise<TalkPanel> | null = null;
 let fab: HTMLButtonElement | null = null;
-let hudChip: HTMLButtonElement | null = null;
 
 /** The tour has begun ("entrar"): the HUD is live and the entry points may show. */
 const started = () => !!stageEl?.classList.contains("started");
 
 const setExpanded = (open: boolean) => {
   fab?.setAttribute("aria-expanded", String(open));
-  hudChip?.setAttribute("aria-expanded", String(open));
 };
 
 const loadPanel = () => {
@@ -63,15 +61,12 @@ function mount(stage: HTMLElement) {
     "talk-fab",
     `<span class="talk-fab-wave" aria-hidden="true"><i></i><i></i><i></i></span><span class="talk-fab-label">${LABEL}</span><kbd class="desk" aria-hidden="true">T</kbd>`
   );
-  stage.append(fab);
 
-  hudChip = entryButton(
-    "talk-hud",
-    `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4.5h12a1.5 1.5 0 0 1 1.5 1.5v6.5A1.5 1.5 0 0 1 16 14H9l-3.6 2.7c-.3.2-.7 0-.7-.4V14H4a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 4 4.5Z"/></svg><kbd class="desk" aria-hidden="true">T</kbd>`
-  );
-  hudChip.setAttribute("aria-label", LABEL);
-  hudChip.title = `${LABEL} (T)`;
-  stage.querySelector("#bar .tools")?.prepend(hudChip);
+  // one entry point: inside the bar's right group on desktop, floating top right on phones
+  const desk = matchMedia("(min-width: 901px)");
+  const dock = () => (desk.matches ? stage.querySelector("#bar .tools")?.prepend(fab!) : stage.append(fab!));
+  desk.addEventListener("change", dock);
+  dock();
 
   window.addEventListener("keydown", (e) => {
     if (e.key !== "t" && e.key !== "T") return;

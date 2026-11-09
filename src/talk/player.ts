@@ -128,6 +128,7 @@ export function playAnswer(text: string, opts: { reduced: boolean; speech: Speec
 
   // Typing at a fixed pace, from character `from` to `to`.
   const type = (to: number, pace: number, then: () => void) => {
+    cancelAnimationFrame(raf);
     let last = performance.now();
     let budget = 0;
     const step = (now: number) => {
