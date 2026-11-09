@@ -657,7 +657,6 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
     hud.close();
     release();
     hud.show(slideOf(ACTS[i]), i > from ? 1 : -1);
-    sfxWhoosh();
     if (ACTS[i] === "war" && from === 0 && s3) {
       const dog = s3.dog;
       gsap.delayedCall(0.35, () => {
