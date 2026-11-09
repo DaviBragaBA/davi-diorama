@@ -38,6 +38,7 @@ const objects: CatalogEntry[] = [
   ...education
     .filter((e) => e.id === "unifei" || e.id === "espm")
     .map((e) => ({ id: e.id, label: `quadro e diploma ${e.id.toUpperCase()}`, chapter: "studio" })),
+  { id: "pos-ia", label: "placa da pós UNIPDS (Software AI Engineering)", chapter: "studio" },
   { id: "tcc", label: "mochila do TCC (leilão da mochila)", chapter: "studio" },
   { id: "dia-a-dia", label: "painel de IA no dia a dia (n8n, skills, agentes)", chapter: "lab" },
   { id: "n8n", label: "placa n8n", chapter: "lab" },
@@ -58,7 +59,7 @@ const cards: CatalogEntry[] = [
   ...personalProjects.map((p) => ({ id: `project:${p.id}`, label: p.title, chapter: null })),
   ...education.map((e) => ({ id: `education:${e.id}`, label: e.degree, chapter: e.id === "pos-ia" ? "lab" : "studio" })),
   { id: "tcc:tcc", label: "TCC · Uma Introdução ao Leilão da Mochila", chapter: "studio" },
-  { id: "lab:pos-ia", label: "Pós em Engenharia de Software em IA", chapter: "lab" },
+  { id: "lab:pos-ia", label: "Pós em Software AI Engineering (UNIPDS)", chapter: "lab" },
   { id: "practice:dia-a-dia", label: "como eu uso IA no dia a dia", chapter: "lab" },
   { id: "practice:n8n", label: "n8n · automação", chapter: "lab" },
   { id: "practice:skills-craft", label: "Skills · criar o jeito de trabalhar", chapter: "lab" },

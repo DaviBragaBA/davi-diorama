@@ -16,7 +16,7 @@ export const splashHighlights: SplashHighlight[] = [
   { text: "UNIFEI · ESPM · UNIPDS", category: "Formações" },
   { text: "Sistemas de Informação", category: "Formação" },
   { text: "Inteligência de Dados em Negócios", category: "Formação" },
-  { text: "Engenharia de Software em IA", category: "Formação" },
+  { text: "Software AI Engineering", category: "Formação" },
   { text: "Negócios", category: "Área" },
   { text: "IA", category: "Área" },
   { text: "Software", category: "Área" },

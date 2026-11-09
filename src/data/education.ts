@@ -34,8 +34,8 @@ export const education: Education[] = [
   },
   {
     id: "pos-ia",
-    institution: "Pós-Graduação Lato Sensu",
-    degree: "Engenharia de Software em IA",
+    institution: "UNIPDS · Pós-Graduação Lato Sensu",
+    degree: "Software AI Engineering",
     description:
       "Especialização em Engenharia de Software e Inteligência Artificial. No dia a dia, o que já entrega resultado é prático: n8n pra automatizar fluxos, criação de skills e agentes que resolvem o problema repetido do expediente.",
     tags: ["n8n", "Skills", "Agentes", "LLMs", "MCP"],

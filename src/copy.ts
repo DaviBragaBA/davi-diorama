@@ -89,8 +89,8 @@ export const SLIDES: Slide[] = [
     id: "studio",
     num: "04",
     kicker: "Formação · graduação e pós",
-    title: ["UNIFEI", "ESPM"],
-    lead: "Formado em Sistemas de Informação (UNIFEI). Pós em Inteligência de Dados em Negócios (ESPM), concluída. Em andamento: Engenharia de Software em IA.",
+    title: ["UNIFEI · ESPM", "UNIPDS"],
+    lead: "Formado em Sistemas de Informação (UNIFEI). Pós em Inteligência de Dados em Negócios (ESPM), concluída. Em andamento: pós em Software AI Engineering na UNIPDS.",
     metrics: [
       { value: 10, label: "nota do TCC · ESPM" },
       { value: 2023, label: "UNIFEI · Sistemas de Informação" },
@@ -99,6 +99,7 @@ export const SLIDES: Slide[] = [
     chips: [
       { kind: "education", id: espm.id, label: "ESPM", meta: "pós · dados" },
       { kind: "education", id: unifei.id, label: "UNIFEI", meta: unifei.period },
+      { kind: "education", id: posIa.id, label: "UNIPDS", meta: "Software AI Engineering" },
       { kind: "tcc", id: "tcc", label: "TCC UNIFEI", meta: "leilão da mochila" },
     ],
     more: { kind: "education", id: "espm", label: "ler a formação" },

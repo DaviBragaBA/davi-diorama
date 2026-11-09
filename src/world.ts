@@ -495,8 +495,9 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
   [
     { e: education.find((x) => x.id === "espm")!, short: "ESPM", sub: "TCC 10" },
     { e: education.find((x) => x.id === "unifei")!, short: "SI", sub: "2018–23" },
+    { e: education.find((x) => x.id === "pos-ia")!, short: "UNIPDS", sub: "2026–27" },
   ].forEach((d, i) => {
-    const dip = namePlate(d.short, d.sub, stuX - 0.2 + i * 0.85, 0.92, -2.98, 0.76, 0.4, "#141a17");
+    const dip = namePlate(d.short, d.sub, stuX - 0.6 + i * 0.8, 0.92, -2.98, 0.76, 0.4, "#141a17");
     tag(dip, "education", d.e.id);
     addPick(dip);
   });

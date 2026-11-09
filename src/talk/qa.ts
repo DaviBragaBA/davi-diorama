@@ -27,8 +27,8 @@ export const QA: QaEntry[] = [
     id: "who",
     q: { pt: "Quem é você?", en: "Who are you?" },
     a: {
-      pt: "Sou o Davi Braga, de Varginha, morando em São Paulo. Hoje sou Business Analyst em Core Limit Policies no Nubank. Sou formado em Sistemas de Informação pela UNIFEI, concluí a pós em Inteligência de Dados em Negócios na ESPM, com TCC nota 10, e estou cursando Engenharia de Software em IA. Tenho interesse em análise de dados e números, e sou extrovertido e conversador.",
-      en: "I'm Davi Braga, from Varginha, living in São Paulo. Today I'm a Business Analyst in Core Limit Policies at Nubank. I have a degree in Information Systems from UNIFEI, I completed Business Data Intelligence at ESPM with a thesis graded 10, and I'm studying Software Engineering in AI. I'm interested in data analysis and numbers, and I'm extroverted and conversational.",
+      pt: "Sou o Davi Braga, de Varginha, morando em São Paulo. Hoje sou Business Analyst em Core Limit Policies no Nubank. Sou formado em Sistemas de Informação pela UNIFEI, concluí a pós em Inteligência de Dados em Negócios na ESPM, com TCC nota 10, e estou cursando Software AI Engineering na UNIPDS. Tenho interesse em análise de dados e números, e sou extrovertido e conversador.",
+      en: "I'm Davi Braga, from Varginha, living in São Paulo. Today I'm a Business Analyst in Core Limit Policies at Nubank. I have a degree in Information Systems from UNIFEI, I completed Business Data Intelligence at ESPM with a thesis graded 10, and I'm studying Software AI Engineering at UNIPDS. I'm interested in data analysis and numbers, and I'm extroverted and conversational.",
     },
     actions: [
       { name: "go_to_chapter", id: "desk" },
@@ -84,8 +84,8 @@ export const QA: QaEntry[] = [
     id: "ai",
     q: { pt: "Como você usa IA no dia a dia?", en: "How do you use AI day to day?" },
     a: {
-      pt: "Na prática, em três frentes: n8n para automatizar fluxos, criação de skills, que são instruções que o agente segue, e agentes que resolvem o problema repetido do expediente. O objetivo é simples: o problema diário deixa de ser manual. Também trabalho com LLMs, RAG, MCP e APIs generativas, e estou cursando uma pós em Engenharia de Software em IA.",
-      en: "In practice, on three fronts: n8n to automate workflows, building skills, which are instructions the agent follows, and agents that solve the repetitive problems of the workday. The goal is simple: everyday problems stop being manual. I also work with LLMs, RAG, MCP and generative APIs, and I'm taking a graduate program in Software Engineering in AI.",
+      pt: "Na prática, em três frentes: n8n para automatizar fluxos, criação de skills, que são instruções que o agente segue, e agentes que resolvem o problema repetido do expediente. O objetivo é simples: o problema diário deixa de ser manual. Também trabalho com LLMs, RAG, MCP e APIs generativas, e estou cursando uma pós em Software AI Engineering na UNIPDS.",
+      en: "In practice, on three fronts: n8n to automate workflows, building skills, which are instructions the agent follows, and agents that solve the repetitive problems of the workday. The goal is simple: everyday problems stop being manual. I also work with LLMs, RAG, MCP and generative APIs, and I'm taking a graduate program in Software AI Engineering at UNIPDS.",
     },
     actions: [
       { name: "go_to_chapter", id: "lab" },
@@ -99,8 +99,8 @@ export const QA: QaEntry[] = [
     id: "ai-study",
     q: { pt: "O que você estuda em IA?", en: "What are you studying in AI?" },
     a: {
-      pt: "Estou na pós-graduação lato sensu em Engenharia de Software em IA, de fev 2026 a fev 2027: são 480h em 12 meses. É uma especialização em Engenharia de Software e Inteligência Artificial, com n8n, skills, agentes, LLMs e MCP. O que já entrega resultado no meu dia a dia é prático: automação com n8n, skills que o agente segue e agentes no trabalho.",
-      en: "I'm in a graduate specialization in Software Engineering in AI, from Feb 2026 to Feb 2027: 480 hours over 12 months. It covers Software Engineering and Artificial Intelligence, with n8n, skills, agents, LLMs and MCP. What already delivers results in my day to day is practical: automation with n8n, skills the agent follows and agents at work.",
+      pt: "Estou na pós-graduação lato sensu em Software AI Engineering na UNIPDS, de fev 2026 a fev 2027: são 480h em 12 meses. É uma especialização em Engenharia de Software e Inteligência Artificial, com n8n, skills, agentes, LLMs e MCP. O que já entrega resultado no meu dia a dia é prático: automação com n8n, skills que o agente segue e agentes no trabalho.",
+      en: "I'm in a graduate specialization in Software AI Engineering at UNIPDS, from Feb 2026 to Feb 2027: 480 hours over 12 months. It covers Software Engineering and Artificial Intelligence, with n8n, skills, agents, LLMs and MCP. What already delivers results in my day to day is practical: automation with n8n, skills the agent follows and agents at work.",
     },
     actions: [
       { name: "go_to_chapter", id: "lab" },
@@ -113,8 +113,8 @@ export const QA: QaEntry[] = [
     id: "education",
     q: { pt: "Qual é a sua formação?", en: "What is your education?" },
     a: {
-      pt: "Sou bacharel em Sistemas de Informação pela Universidade Federal de Itajubá, a UNIFEI, de 2018 a 2023. Depois concluí a pós em Inteligência de Dados em Negócios na ESPM, com TCC nota 10, focada em transformar dados em decisões estratégicas, com Tableau, data storytelling e modelos preditivos. Agora curso a pós em Engenharia de Software em IA.",
-      en: "I have a bachelor's degree in Information Systems from the Federal University of Itajubá, UNIFEI, from 2018 to 2023. Then I completed a graduate program in Business Data Intelligence at ESPM, with a thesis graded 10, focused on turning data into strategic decisions with Tableau, data storytelling and predictive models. Now I'm taking a graduate program in Software Engineering in AI.",
+      pt: "Sou bacharel em Sistemas de Informação pela Universidade Federal de Itajubá, a UNIFEI, de 2018 a 2023. Depois concluí a pós em Inteligência de Dados em Negócios na ESPM, com TCC nota 10, focada em transformar dados em decisões estratégicas, com Tableau, data storytelling e modelos preditivos. Agora curso a pós em Software AI Engineering na UNIPDS.",
+      en: "I have a bachelor's degree in Information Systems from the Federal University of Itajubá, UNIFEI, from 2018 to 2023. Then I completed a graduate program in Business Data Intelligence at ESPM, with a thesis graded 10, focused on turning data into strategic decisions with Tableau, data storytelling and predictive models. Now I'm taking a graduate program in Software AI Engineering at UNIPDS.",
     },
     actions: [
       { name: "go_to_chapter", id: "studio" },
