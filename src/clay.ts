@@ -41,9 +41,11 @@ export function blobShadow(r: number, a = 0.22): THREE.Mesh {
   const c = document.createElement("canvas");
   c.width = c.height = 128;
   const ctx = c.getContext("2d")!;
-  const g = ctx.createRadialGradient(64, 64, 8, 64, 64, 64);
-  g.addColorStop(0, `rgba(0,0,0,${a})`);
-  g.addColorStop(1, "rgba(0,0,0,0)");
+  // warm brown, not black: on a light floor a grey blob reads as a smudge, a brown one as a soft shadow
+  const g = ctx.createRadialGradient(64, 64, 4, 64, 64, 64);
+  g.addColorStop(0, `rgba(40,24,12,${a})`);
+  g.addColorStop(0.45, `rgba(40,24,12,${a * 0.6})`);
+  g.addColorStop(1, "rgba(40,24,12,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 128, 128);
   const mat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false });
@@ -96,6 +98,9 @@ export function brindleTex(): THREE.CanvasTexture {
 }
 
 export const INK = "#0a0c11";
+/** Daylight backdrop: warm peach behind the walls and in the fog, where the night mode keeps INK. */
+export const SKY_DAY = "#e8cfae";
+export const SKY_NIGHT = INK;
 
 export const P = {
   skin: "#d9a67e",
