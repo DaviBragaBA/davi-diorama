@@ -16,7 +16,7 @@ test("tour shots", async ({ page }, info) => {
   await page.waitForTimeout(3000);
   for (let n = 1; n <= 6; n++) {
     await page.keyboard.press(String(n));
-    await page.waitForTimeout(4500);
+    await page.waitForTimeout(7000);
     await page.screenshot({ path: join(dir, `${n}-chapter.png`) });
   }
 });

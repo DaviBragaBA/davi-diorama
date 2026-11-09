@@ -135,10 +135,10 @@ export function createTour(scroller: HTMLElement, count: number, opts: { reduced
       start: "top top",
       end: "bottom bottom",
       animation: tl,
-      scrub: opts.reduced() ? true : 0.85,
+      scrub: opts.reduced() ? true : 1.4,
       snap: {
         snapTo: "labelsDirectional",
-        duration: { min: 0.35, max: 0.9 },
+        duration: { min: 1.3, max: 3 },
         delay: 0.08,
         ease: "power2.inOut",
         inertia: false,
@@ -177,7 +177,8 @@ export function createTour(scroller: HTMLElement, count: number, opts: { reduced
     const dist = Math.abs(scroller.scrollTop - y) / Math.max(1, st.end - st.start) * (count - 1);
     navTween = gsap.to(scroller, {
       scrollTo: { y, autoKill: true },
-      duration: THREE.MathUtils.clamp(0.75 + dist * 0.32, 0.75, 2.1),
+      // about a calm walk: ~3 s per room, capped for long jumps
+      duration: THREE.MathUtils.clamp(1.8 + dist * 1.1, 2.4, 6),
       ease: "power2.inOut",
       onComplete: () => (navTween = null),
       onInterrupt: () => (navTween = null),
