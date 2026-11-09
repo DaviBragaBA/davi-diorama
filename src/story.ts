@@ -209,7 +209,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
   const { signal } = ac;
   const mq = matchMedia("(prefers-reduced-motion: reduce)");
   const rm = () => mq.matches;
-  const hud = bindHud(stage);
+  const hud = bindHud(stage, signal);
   const scroller = stage.querySelector<HTMLElement>("#tour")!;
   const intro = stage.querySelector<HTMLElement>("#intro")!;
   const hudEls = [...stage.querySelectorAll<HTMLElement>("#brand, #slide, #rail, #bar")];
