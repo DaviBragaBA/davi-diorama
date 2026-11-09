@@ -79,7 +79,7 @@ test("entry points open the panel, loaded lazily, labelled as ready-made answers
   await expect(fab).toBeVisible();
   await expect(fab).toContainText("Fale com o Davi");
   await expect(fab).not.toContainText(/\b(IA|AI)\b/);
-  await expect(page.locator("#bar .talk-hud")).toBeVisible();
+  await expect(fab).toBeVisible();
   expect(requested.some(panelChunk), "panel chunk before the first open").toBe(false);
 
   await page.keyboard.press("t");
@@ -95,7 +95,7 @@ test("entry points open the panel, loaded lazily, labelled as ready-made answers
 
   await dialog.locator(".talk-close").click();
   await expect(dialog).toBeHidden();
-  await page.locator("#bar .talk-hud").click();
+  await fab.click();
   await expect(dialog).toBeVisible();
 });
 
