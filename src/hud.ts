@@ -129,7 +129,7 @@ export function bindHud(root: HTMLElement, signal?: AbortSignal): Hud {
     `<b class="rail-ind" aria-hidden="true"></b>` +
     SLIDES.map((s) => `<button type="button" data-rail="${s.id}" aria-label="${s.num} · ${s.title.join(" ")}"><i>${s.num}</i><span>${s.title.join(" ")}</span></button>`).join("");
   const railInd = rail.querySelector<HTMLElement>(".rail-ind")!;
-  rail.querySelectorAll<HTMLButtonElement>("[data-rail]").forEach((b) => b.addEventListener("click", () => jump(b.dataset.rail!)));
+  rail.querySelectorAll<HTMLButtonElement>("[data-rail]").forEach((b) => b.addEventListener("click", () => jump(b.dataset.rail!), { signal }));
   microButtons(rail, "[data-rail]");
   microButtons(root, "#open-index, #sound, #unfocus");
   const openIdx = root.querySelector<HTMLElement>("#open-index");
@@ -166,6 +166,8 @@ export function bindHud(root: HTMLElement, signal?: AbortSignal): Hud {
     { signal }
   );
   void document.fonts?.ready.then(refit);
+  document.fonts?.addEventListener("loadingdone", refit, { signal });
+  signal?.addEventListener("abort", () => cancelAnimationFrame(refitQueued));
 
   let lastNum = "";
   const total = SLIDES[SLIDES.length - 1].num;
@@ -202,7 +204,11 @@ export function bindHud(root: HTMLElement, signal?: AbortSignal): Hud {
     // only the number, the kicker and the title are announced; the rest of the slide is read on demand
     if (live) live.textContent = `${s.num} de ${total}. ${s.kicker}. ${s.title.join(" ")}`;
     // the keyboard hint is for the first chapter; after the first move it fades for good
-    if (s.id !== SLIDES[0].id) hints.forEach((h) => h.classList.add("gone"));
+    if (s.id !== SLIDES[0].id) hints.forEach((h) => {
+      h.classList.add("gone");
+      h.inert = true;
+      h.setAttribute("aria-hidden", "true");
+    });
 
     slideEl.querySelectorAll<HTMLElement>(".sl:not(.out)").forEach((old) => {
       old.classList.add("out");
@@ -229,7 +235,7 @@ export function bindHud(root: HTMLElement, signal?: AbortSignal): Hud {
       b.addEventListener("click", (e) => {
         e.stopPropagation();
         chip(b.dataset.kind!, b.dataset.id!);
-      })
+      }, { signal })
     );
     microButtons(art, ".chips button, .more");
 
@@ -312,7 +318,7 @@ export function bindHud(root: HTMLElement, signal?: AbortSignal): Hud {
       b.addEventListener("click", () => {
         close();
         jump(b.dataset.jump!);
-      });
+      }, { signal });
     });
     microButtons(sheet, "#dossier-close, .jumps button, .live-go, .pk");
     requestAnimationFrame(() => closeBtn.focus({ preventScroll: true }));
@@ -354,10 +360,10 @@ export function bindHud(root: HTMLElement, signal?: AbortSignal): Hud {
     navigator.clipboard.writeText(personal.email).then(() => toast("e-mail copiado · " + personal.email), shown);
   };
 
-  closeBtn.addEventListener("click", close);
+  closeBtn.addEventListener("click", close, { signal });
   dossier.addEventListener("click", (e) => {
     if (e.target === dossier && performance.now() - openedAt > 400) close();
-  });
+  }, { signal });
 
   const dismissIntro = () =>
     new Promise<void>((res) => {

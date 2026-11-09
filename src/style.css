@@ -157,6 +157,23 @@
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
   --out: cubic-bezier(0.16, 1, 0.3, 1);
 }
+/* registered so the HUD palette fades with the scene (0.9s, same as the look tween) instead of snapping when the lamp toggles */
+@property --bg { syntax: "<color>"; inherits: true; initial-value: #faf3e6; }
+@property --bg2 { syntax: "<color>"; inherits: true; initial-value: #f4ead9; }
+@property --bg3 { syntax: "<color>"; inherits: true; initial-value: #eee2cc; }
+@property --fg { syntax: "<color>"; inherits: true; initial-value: #2b211b; }
+@property --fg2 { syntax: "<color>"; inherits: true; initial-value: #4a3f37; }
+@property --muted { syntax: "<color>"; inherits: true; initial-value: #5f5349; }
+@property --line { syntax: "<color>"; inherits: true; initial-value: #cdbda3; }
+@property --acc-fg { syntax: "<color>"; inherits: true; initial-value: #476400; }
+@property --acc-tint { syntax: "<color>"; inherits: true; initial-value: #e9efc4; }
+@property --page-a { syntax: "<color>"; inherits: true; initial-value: #f8eddb; }
+@property --page-b { syntax: "<color>"; inherits: true; initial-value: #ecd9ba; }
+@property --bg-rgb { syntax: "<number>#"; inherits: true; initial-value: 250, 243, 230; }
+@property --fg-rgb { syntax: "<number>#"; inherits: true; initial-value: 43, 33, 27; }
+@property --sh-rgb { syntax: "<number>#"; inherits: true; initial-value: 80, 52, 24; }
+@property --acc-tint-rgb { syntax: "<number>#"; inherits: true; initial-value: 90, 130, 0; }
+:root { transition: --bg 0.9s var(--ease), --bg2 0.9s var(--ease), --bg3 0.9s var(--ease), --fg 0.9s var(--ease), --fg2 0.9s var(--ease), --muted 0.9s var(--ease), --line 0.9s var(--ease), --acc-fg 0.9s var(--ease), --acc-tint 0.9s var(--ease), --page-a 0.9s var(--ease), --page-b 0.9s var(--ease), --bg-rgb 0.9s var(--ease), --fg-rgb 0.9s var(--ease), --sh-rgb 0.9s var(--ease), --acc-tint-rgb 0.9s var(--ease); }
 /* night (lamp on): the dark HUD the page shipped with */
 :root.night {
   --bg: #0e0d10;
@@ -733,6 +750,7 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   #grain { animation: none; }
   #sound.on i { animation: none; transform: scaleY(0.71); }
+  :root { transition-duration: 0.01s !important; }
   #toast, #slide, #unfocus, .chips button, .more i, #rail button span, .jumps button { transition-duration: 0.01s !important; }
   #intro.waiting:not(.ready) .cta { animation: none; }
   .chips button:hover { translate: none; }
