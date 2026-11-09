@@ -232,15 +232,15 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
   g.add(divider(23.85, th("#b6d6cc", "#122428")));
 
   // Light plan: every light has a daylight and a night value; `applyLook` blends them by look.day.
-  // Night is the old moody look (cool low hemisphere, small colored lamps in each room).
+  // Night is the lamp-lit dark room: sun, hemisphere and rim nearly off, the lamp, pendant and small colored room lights carry it.
   const lightPlan: { l: THREE.Light; i: [number, number]; c: [string, string]; g?: [string, string] }[] = [];
   const plan = <T extends THREE.Light>(l: T, i: [number, number], c: [string, string], gc?: [string, string]) => {
     lightPlan.push({ l, i, c, g: gc });
     return l;
   };
-  const hemi = plan(new THREE.HemisphereLight("#fff4e2", "#d2b48e", 1.15), [1.15, 0.55], ["#fff4e2", "#8fa3c4"], ["#d2b48e", "#1a1410"]);
+  const hemi = plan(new THREE.HemisphereLight("#fff4e2", "#d2b48e", 1.15), [1.15, 0.12], ["#fff4e2", "#8fa3c4"], ["#d2b48e", "#1a1410"]);
   g.add(hemi);
-  const key = plan(new THREE.DirectionalLight("#ffe0b0", 2.4), [2.4, 2.1], ["#ffe0b0", "#ffe7c8"]);
+  const key = plan(new THREE.DirectionalLight("#ffe0b0", 2.4), [2.4, 0.25], ["#ffe0b0", "#ffe7c8"]);
   key.position.set(-6, 9, 7);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
@@ -254,11 +254,11 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
   key.shadow.normalBias = 0.04;
   key.target.position.set(8, 0, -1);
   g.add(key, key.target);
-  const fill = plan(new THREE.DirectionalLight("#ffd6a8", 0.3), [0.3, 0.35], ["#ffd6a8", "#6f86ff"]);
+  const fill = plan(new THREE.DirectionalLight("#ffd6a8", 0.3), [0.3, 0.25], ["#ffd6a8", "#6f86ff"]);
   fill.position.set(10, 4, -6);
   g.add(fill);
   // rim from behind and above: a sun glow by day, a cool edge light at night, so the clay figures stay apart from the walls
-  const rim = plan(new THREE.DirectionalLight("#ffe9cf", 0.45), [0.45, 0.6], ["#ffe9cf", "#9fb4ff"]);
+  const rim = plan(new THREE.DirectionalLight("#ffe9cf", 0.45), [0.45, 0.25], ["#ffe9cf", "#9fb4ff"]);
   rim.position.set(4, 2.6, -9);
   rim.target.position.set(6, 1, 2);
   g.add(rim, rim.target);
@@ -655,6 +655,7 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
       const m = s2.material as THREE.MeshStandardMaterial;
       m.color.set(SKY[1]).lerp(C.set(SKY[0]), d).lerp(C.set("#0b1020"), look.dusk);
       m.emissive.copy(m.color);
+      m.userData.look = true; // the story's hover highlight reads this: the sky glow follows the look, not a stale snapshot
     }
   };
   const updateDust = (t: number, still: boolean) => {

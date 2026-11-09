@@ -305,7 +305,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
     return h;
   };
   const paintHL = (h: HL) => {
-    for (const x of h.mats) if (!x.m.emissiveMap) x.m.emissive.copy(x.e).lerp(ACC, 0.2 * h.v);
+    for (const x of h.mats) if (!x.m.emissiveMap) x.m.emissive.copy(x.m.userData.look ? x.m.color : x.e).lerp(ACC, 0.2 * h.v);
   };
   let hoverRoot: THREE.Object3D | null = null;
   const setHover = (root: THREE.Object3D | null) => {
@@ -410,7 +410,8 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
     const on = world.night.on;
     // the HUD has a dark variant under html.night
     document.documentElement.classList.toggle("night", on);
-    gsap.to(world.look, { day: on ? 0 : 1, duration: rm() ? 0.01 : 0.9, ease: "power2.inOut", onUpdate: paintLook, overwrite: true });
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", on ? "#231c19" : "#f8eddb");
+    gsap.to(world.look, { day: on ? 0 : 1, duration: rm() ? 0.01 : 0.9, ease: "power2.inOut", onUpdate: paintLook, overwrite: "auto" });
     gsap.to(renderer, { toneMappingExposure: on ? 0.9 : 1.05, duration: rm() ? 0.01 : 0.8, overwrite: true });
     hud.toast(on ? "modo noite · só o abajur" : "luz do dia");
     sfxPop(on ? 330 : 520);
@@ -1175,6 +1176,7 @@ export async function startStory(canvas: HTMLCanvasElement, stage: HTMLElement, 
 
   stopPrev = () => {
     document.documentElement.classList.remove("night");
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", "#f8eddb");
     gsap.ticker.remove(loop);
     cancelAnimationFrame(sizeRaf);
     gsap.ticker.remove(progressTick);
