@@ -55,17 +55,17 @@ function fitTitle(h: HTMLElement) {
   if (!col) return;
   const lines = [...h.querySelectorAll<HTMLElement>(".l1, .l2")];
   const nowrap = lines[0] && getComputedStyle(lines[0]).whiteSpace === "nowrap";
-  const avail = nowrap ? Math.max(col, Math.min(innerWidth * 0.5, col * 1.3)) : col;
-  const probe = document.createElement("span");
-  probe.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap;font:inherit;letter-spacing:inherit;text-transform:inherit";
-  h.appendChild(probe);
-  let widest = 0;
+  const avail = nowrap ? Math.max(col, Math.min(innerWidth * 0.5, col * 1.15)) : col;
   const parts = nowrap ? lines.map((l) => l.textContent ?? "") : (h.textContent ?? "").split(/\s+/);
-  for (const w of parts) {
+  const probes = parts.map((w) => {
+    const probe = document.createElement("span");
+    probe.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap;font:inherit;letter-spacing:inherit;text-transform:inherit";
     probe.textContent = w;
-    widest = Math.max(widest, probe.getBoundingClientRect().width);
-  }
-  probe.remove();
+    return probe;
+  });
+  h.append(...probes);
+  const widest = Math.max(...probes.map((p) => p.getBoundingClientRect().width));
+  probes.forEach((p) => p.remove());
   if (widest > avail) h.style.fontSize = `${(parseFloat(getComputedStyle(h).fontSize) * avail * 0.97) / widest}px`;
 }
 
@@ -84,10 +84,14 @@ export function microButtons(root: ParentNode, selector: string) {
 export function magnetic(el: HTMLElement, pull = 0.28) {
   if (reduced() || matchMedia("(pointer: coarse)").matches) return;
   hover(el, (target) => {
+    // the resting centre, read once on enter: the rect already carries the pull in progress
+    const [tx, ty] = getComputedStyle(target).translate.split(" ").map((v) => parseFloat(v) || 0);
+    const r = (target as HTMLElement).getBoundingClientRect();
+    const cx = r.left + r.width / 2 - (tx || 0);
+    const cy = r.top + r.height / 2 - (ty || 0);
     const move = (e: PointerEvent) => {
-      const r = (target as HTMLElement).getBoundingClientRect();
-      const dx = e.clientX - (r.left + r.width / 2);
-      const dy = e.clientY - (r.top + r.height / 2);
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
       animate(target, { translate: `${(dx * pull).toFixed(1)}px ${(dy * pull).toFixed(1)}px` }, { type: spring, stiffness: 260, damping: 18, mass: 0.6 });
     };
     target.addEventListener("pointermove", move as EventListener);
@@ -98,7 +102,7 @@ export function magnetic(el: HTMLElement, pull = 0.28) {
   });
 }
 
-export function bindHud(root: HTMLElement): Hud {
+export function bindHud(root: HTMLElement, signal?: AbortSignal): Hud {
   const slideEl = root.querySelector<HTMLElement>("#slide")!;
   const dossier = root.querySelector<HTMLElement>("#dossier")!;
   const sheet = root.querySelector<HTMLElement>("#dossier-sheet")!;
@@ -111,6 +115,9 @@ export function bindHud(root: HTMLElement): Hud {
   const intro = root.querySelector<HTMLElement>("#intro")!;
   const progress = root.querySelector<HTMLElement>("#progress i");
   const tipEl = root.querySelector<HTMLElement>("#tip")!;
+  const live = root.querySelector<HTMLElement>("#slide-live");
+  const hints = [...root.querySelectorAll<HTMLElement>(".hint")];
+  let titleEl: HTMLElement | null = null;
   let jump = (_id: string) => {};
   let chip = (_kind: string, _id: string) => {};
   const closeFns: (() => void)[] = [];
@@ -122,7 +129,7 @@ export function bindHud(root: HTMLElement): Hud {
     `<b class="rail-ind" aria-hidden="true"></b>` +
     SLIDES.map((s) => `<button type="button" data-rail="${s.id}" aria-label="${s.num} · ${s.title.join(" ")}"><i>${s.num}</i><span>${s.title.join(" ")}</span></button>`).join("");
   const railInd = rail.querySelector<HTMLElement>(".rail-ind")!;
-  rail.querySelectorAll<HTMLButtonElement>("[data-rail]").forEach((b) => b.addEventListener("click", () => jump(b.dataset.rail!)));
+  rail.querySelectorAll<HTMLButtonElement>("[data-rail]").forEach((b) => b.addEventListener("click", () => jump(b.dataset.rail!), { signal }));
   microButtons(rail, "[data-rail]");
   microButtons(root, "#open-index, #sound, #unfocus");
   const openIdx = root.querySelector<HTMLElement>("#open-index");
@@ -137,6 +144,30 @@ export function bindHud(root: HTMLElement): Hud {
     const y = phone ? on.offsetTop - 7 : on.offsetTop + on.offsetHeight / 2 - 3;
     animate(railInd, { translate: `${x}px ${y}px`, opacity: 1 }, reduced() ? { duration: 0.01 } : { type: spring, stiffness: 380, damping: 30 });
   };
+
+  const isYear = (m: { value: number }) => m.value > 1900;
+
+  // phone card: a bottom fade says there is more to scroll
+  const updateMore = () => slideEl.classList.toggle("more-below", slideEl.scrollHeight - slideEl.scrollTop - slideEl.clientHeight > 2);
+  slideEl.addEventListener("scroll", updateMore, { passive: true, signal });
+
+  // the title fit depends on the column and the font: redo it on resize and when the fonts land
+  let refitQueued = 0;
+  const refit = () => {
+    if (titleEl?.isConnected) fitTitle(titleEl);
+    updateMore();
+  };
+  addEventListener(
+    "resize",
+    () => {
+      cancelAnimationFrame(refitQueued);
+      refitQueued = requestAnimationFrame(refit);
+    },
+    { signal }
+  );
+  void document.fonts?.ready.then(refit);
+  document.fonts?.addEventListener("loadingdone", refit, { signal });
+  signal?.addEventListener("abort", () => cancelAnimationFrame(refitQueued));
 
   let lastNum = "";
   const total = SLIDES[SLIDES.length - 1].num;
@@ -162,14 +193,22 @@ export function bindHud(root: HTMLElement): Hud {
 
   const show = (s: Slide, dir: number) => {
     const rm = reduced();
+    moveRail(s.id); // reads the rail's offsets first, then the class writes below
     rail.querySelectorAll<HTMLButtonElement>("[data-rail]").forEach((b) => {
       const on = b.dataset.rail === s.id;
       b.classList.toggle("on", on);
       if (on) b.setAttribute("aria-current", "step");
       else b.removeAttribute("aria-current");
     });
-    moveRail(s.id);
     setCounter(s.num, dir || 1);
+    // only the number, the kicker and the title are announced; the rest of the slide is read on demand
+    if (live) live.textContent = `${s.num} de ${total}. ${s.kicker}. ${s.title.join(" ")}`;
+    // the keyboard hint is for the first chapter; after the first move it fades for good
+    if (s.id !== SLIDES[0].id) hints.forEach((h) => {
+      h.classList.add("gone");
+      h.inert = true;
+      h.setAttribute("aria-hidden", "true");
+    });
 
     slideEl.querySelectorAll<HTMLElement>(".sl:not(.out)").forEach((old) => {
       old.classList.add("out");
@@ -184,23 +223,26 @@ export function bindHud(root: HTMLElement): Hud {
       <h2 class="title"><span class="l1">${s.title[0]}</span><span class="l2">${s.title[1]}</span></h2>
       <p class="lead">${s.lead}</p>
       <div class="metrics">${s.metrics
-        .map((m, i) => `<div class="m"><b data-i="${i}" aria-hidden="true">${m.prefix ?? ""}${(0).toFixed(m.decimals ?? 0)}${m.suffix ?? ""}</b><span class="vh">${m.prefix ?? ""}${m.value.toFixed(m.decimals ?? 0)}${m.suffix ?? ""} </span><span>${m.label}</span><i aria-hidden="true"></i></div>`)
+        .map((m, i) => `<div class="m"><b data-i="${i}" aria-hidden="true">${m.prefix ?? ""}${(isYear(m) ? m.value : 0).toFixed(m.decimals ?? 0)}${m.suffix ?? ""}</b><span class="vh">${m.prefix ?? ""}${m.value.toFixed(m.decimals ?? 0)}${m.suffix ?? ""} </span><span>${m.label}</span><i aria-hidden="true"></i></div>`)
         .join("")}</div>
       <div class="chips">${s.chips.map((c) => `<button type="button" data-kind="${c.kind}" data-id="${c.id}"><b>${c.label}</b>${c.meta ? `<span>${c.meta}</span>` : ""}</button>`).join("")}</div>
       ${s.more ? `<button type="button" class="more" data-kind="${s.more.kind}" data-id="${s.more.id}">${s.more.label} <i>→</i></button>` : ""}
     `;
     slideEl.appendChild(art);
+    slideEl.scrollTop = 0;
+    requestAnimationFrame(updateMore);
     art.querySelectorAll<HTMLButtonElement>("[data-kind]").forEach((b) =>
       b.addEventListener("click", (e) => {
         e.stopPropagation();
         chip(b.dataset.kind!, b.dataset.id!);
-      })
+      }, { signal })
     );
     microButtons(art, ".chips button, .more");
 
     const h2 = art.querySelector<HTMLElement>(".title")!;
     h2.setAttribute("aria-label", s.title.join(" "));
     fitTitle(h2);
+    titleEl = h2;
     const l1 = splitChars(art.querySelector<HTMLElement>(".l1")!);
     splitChars(art.querySelector<HTMLElement>(".l2")!);
     const l2 = art.querySelector<HTMLElement>(".l2")!;
@@ -224,7 +266,9 @@ export function bindHud(root: HTMLElement): Hud {
     }
 
     animate(kicker, { opacity: [0, 1], transform: ["translateX(-14px)", "translateX(0px)"] }, { duration: 0.6, ease: EASE_OUT, delay: 0.05 });
-    animate(l1, { transform: ["translateY(108%) rotate(7deg)", "translateY(0%) rotate(0deg)"] }, { delay: stagger(0.028, { startDelay: 0.1 }), type: spring, stiffness: 210, damping: 22, mass: 0.9 });
+    // will-change only while the letters rise
+    l1.forEach((c) => (c.style.willChange = "transform"));
+    void animate(l1, { transform: ["translateY(108%) rotate(7deg)", "translateY(0%) rotate(0deg)"] }, { delay: stagger(0.028, { startDelay: 0.1 }), type: spring, stiffness: 210, damping: 22, mass: 0.9 }).then(() => l1.forEach((c) => (c.style.willChange = "")));
     // the wipe ends past the right edge, so a line wider than its column is never clipped
     animate(l2, { clipPath: ["inset(-0.15em 100% -0.15em -0.1em)", "inset(-0.15em -0.3em -0.15em -0.1em)"], opacity: [0.4, 1] }, { duration: 0.95, ease: [0.65, 0, 0.25, 1], delay: 0.32 });
     animate(lead, { opacity: [0, 1], transform: ["translateY(16px)", "translateY(0px)"] }, { duration: 0.7, ease: EASE_OUT, delay: 0.42 });
@@ -232,6 +276,7 @@ export function bindHud(root: HTMLElement): Hud {
     animate(bars, { scale: ["0 1", "1 1"] }, { duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: stagger(0.09, { startDelay: 0.6 }) });
     nums.forEach((b, i) => {
       const m = s.metrics[i];
+      if (isYear(m)) return; // a year is not a quantity: it shows as it is
       // counters: a Motion value tween from zero to the number already in the slide copy
       animateValue({ keyframes: [0, m.value], duration: 1350, delay: 580 + i * 100, ease: EASE_OUT, onUpdate: (n: number) => (b.textContent = fmt(i, n)) });
     });
@@ -252,7 +297,7 @@ export function bindHud(root: HTMLElement): Hud {
       first.focus();
     }
   };
-  document.addEventListener("keydown", trap);
+  document.addEventListener("keydown", trap, { signal });
 
   let openedAt = 0;
   const open = (card: Card) => {
@@ -273,7 +318,7 @@ export function bindHud(root: HTMLElement): Hud {
       b.addEventListener("click", () => {
         close();
         jump(b.dataset.jump!);
-      });
+      }, { signal });
     });
     microButtons(sheet, "#dossier-close, .jumps button, .live-go, .pk");
     requestAnimationFrame(() => closeBtn.focus({ preventScroll: true }));
@@ -315,10 +360,10 @@ export function bindHud(root: HTMLElement): Hud {
     navigator.clipboard.writeText(personal.email).then(() => toast("e-mail copiado · " + personal.email), shown);
   };
 
-  closeBtn.addEventListener("click", close);
+  closeBtn.addEventListener("click", close, { signal });
   dossier.addEventListener("click", (e) => {
     if (e.target === dossier && performance.now() - openedAt > 400) close();
-  });
+  }, { signal });
 
   const dismissIntro = () =>
     new Promise<void>((res) => {

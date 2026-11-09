@@ -26,6 +26,8 @@ export const JUMPS = [
 
 const nubank = experiences[0];
 const yearsData = new Date().getFullYear() - 2022 + 0.5;
+const startYear = Math.min(...experiences.flatMap((e) => e.period?.match(/\d{4}/g) ?? []).map(Number));
+const trajetoriaAnos = new Date().getFullYear() - startYear;
 const espm = education.find((e) => e.id === "espm")!;
 const posIa = education.find((e) => e.id === "pos-ia")!;
 const unifei = education.find((e) => e.id === "unifei")!;
@@ -37,11 +39,11 @@ export const SLIDES: Slide[] = [
     num: "01",
     kicker: "São Paulo · agora",
     title: ["Davi", "Braga"],
-    lead: `${nubank.role.replace(" (Excellence)", "")} no Nubank. Transformo experimento de limite em decisão: teste vs. controle, risco, receita e a história que explica os dois.`,
+    lead: "No Nubank, transformo experimento de limite em decisão: teste vs. controle, risco, receita e a história que explica os dois.",
     metrics: [
       { value: getAge(), label: "anos" },
       { value: yearsData, decimals: 1, suffix: "+", label: "anos em dados" },
-      { value: 6, label: "empresas" },
+      { value: experiences.length, label: "experiências" },
     ],
     chips: [
       { kind: "egg", id: "monitor", label: "PC", meta: "clica" },
@@ -55,14 +57,14 @@ export const SLIDES: Slide[] = [
     num: "02",
     kicker: `Nubank · ${nubank.period}`,
     title: ["Core Limit", "Policies"],
-    lead: `${nubank.description} Teste vs. controle, volume de compras, saldo médio, utilização marginal, bandas de risco, Databricks e a história pra FP&A.`,
+    lead: "Políticas de limite de cartão em vários países. Analiso experimentos, monitoro em Databricks e alinho as métricas com FP&A.",
     metrics: [
       { value: 4, label: "projetos de política" },
       { value: 2, label: "grupos · teste vs. controle" },
       { value: 24, suffix: "/7", label: "monitoria Databricks" },
     ],
     chips: [
-      { kind: "experience", id: "nubank", label: "teste vs. controle", meta: "experimento" },
+      { kind: "experience", id: "nubank", label: "experimentos", meta: "de limite" },
       { kind: "project", id: "views-mensais-br-mx", label: "Databricks", meta: "views" },
       { kind: "project", id: "risk-band-dashboards", label: "bandas", meta: "risco" },
       { kind: "project", id: "compliance-mexico", label: "compliance", meta: "blocks" },
@@ -73,12 +75,12 @@ export const SLIDES: Slide[] = [
   {
     id: "flash",
     num: "03",
-    kicker: "Carreira · 2018 → 2025",
+    kicker: `Carreira · ${startYear} → presente`,
     title: ["Antes do", "Nubank"],
     lead: "Flash, Discover, Conta Simples, AIESEC, Câmara de Itajubá, UNIFEI e Atlética. Sempre o mesmo fio: dado que vira decisão comercial.",
     metrics: [
-      { value: experiences.length - 1, label: "experiências" },
-      { value: 7, label: "anos de trajetória" },
+      { value: experiences.length - 1, label: "experiências antes do Nubank" },
+      { value: trajetoriaAnos, label: "anos de trajetória" },
       { value: 3, label: "áreas · dados, vendas, CS" },
     ],
     chips: experiences.slice(1).map((e) => ({ kind: "experience", id: e.id, label: e.company.replace("Associação Atlética Acadêmica ", "Atlética ").replace("Estágio – ", ""), meta: e.period ?? "" })),
@@ -86,17 +88,18 @@ export const SLIDES: Slide[] = [
   {
     id: "studio",
     num: "04",
-    kicker: "Formação · concluída",
-    title: ["UNIFEI", "ESPM"],
-    lead: `${personal.formacaoEmUmaLinha} Na ESPM, o TCC saiu nota 10.`,
+    kicker: "Formação · graduação e pós",
+    title: ["UNIFEI · ESPM", "UNIPDS"],
+    lead: "Formado em Sistemas de Informação (UNIFEI). Pós em Inteligência de Dados em Negócios (ESPM), concluída. Em andamento: pós em Software AI Engineering na UNIPDS.",
     metrics: [
       { value: 10, label: "nota do TCC · ESPM" },
       { value: 2023, label: "UNIFEI · Sistemas de Informação" },
-      { value: 100, suffix: "%", label: "ESPM · Inteligência de Dados" },
+      { value: 2, label: "formações concluídas" },
     ],
     chips: [
-      { kind: "education", id: espm.id, label: "ESPM", meta: "TCC nota 10" },
+      { kind: "education", id: espm.id, label: "ESPM", meta: "pós · dados" },
       { kind: "education", id: unifei.id, label: "UNIFEI", meta: unifei.period },
+      { kind: "education", id: posIa.id, label: "UNIPDS", meta: "Software AI Engineering" },
       { kind: "tcc", id: "tcc", label: "TCC UNIFEI", meta: "leilão da mochila" },
     ],
     more: { kind: "education", id: "espm", label: "ler a formação" },
@@ -106,11 +109,11 @@ export const SLIDES: Slide[] = [
     num: "05",
     kicker: "IA aplicada · agora",
     title: ["IA no", "dia a dia"],
-    lead: "n8n, criação de skills e agentes. Três jeitos de tirar problema repetido do caminho — no trabalho e fora dele.",
+    lead: "n8n, criação de skills e agentes. Três pilares pra tirar problema repetido do caminho, no trabalho e fora dele.",
     metrics: [
       { value: 3, label: "pilares · n8n, skills, agentes" },
       { value: 1, label: "fluxo · problema vira automação" },
-      { value: 100, suffix: "%", label: "foco no dia a dia" },
+      { value: iaSkills.skills.length, label: "competências de IA e engenharia" },
     ],
     chips: [
       { kind: "practice", id: "n8n", label: "n8n", meta: "automação" },
@@ -126,10 +129,10 @@ export const SLIDES: Slide[] = [
     num: "06",
     kicker: "Contato",
     title: ["Bora", "conversar"],
-    lead: "Se você chegou até aqui, já sabe como eu penso. Me chama — respondo rápido.",
+    lead: "Me chama por e-mail ou LinkedIn: os dois estão logo aqui embaixo.",
     metrics: [
       { value: 24, prefix: "<", suffix: "h", label: "pra responder" },
-      { value: 100, suffix: "%", label: "aberto a conversa" },
+      { value: 2, label: "canais pra falar comigo" },
       { value: 0, label: "enrolação" },
     ],
     chips: [

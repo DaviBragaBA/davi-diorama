@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { G, P, emissive, mesh } from "./clay";
+import { G, P, clay, emissive, mesh } from "./clay";
 import { billboard, corkBoard, deskModes, idBadge, liveBars, namePlate, noteModes, type LiveBoard } from "./boards";
 import { education, experiences, projects } from "./data";
 import { F, SPOTS_XZ } from "./path";
@@ -37,6 +37,11 @@ export type World = {
   badge: THREE.Group;
   sky: THREE.Mesh[];
   night: { on: boolean };
+  /** Day/night blend (1 = daylight, the default) and the window "dusk" gag; `applyLook` paints both. */
+  look: { day: number; dusk: number };
+  applyLook: () => void;
+  /** Drifting dust in the sun shafts (frozen when `still`). */
+  updateDust: (t: number, still: boolean) => void;
   spots: Record<string, { x: number; z: number; cam: Cam }>;
 };
 
@@ -98,11 +103,12 @@ function table(w: number, d: number, h: number, x: number, z: number, top = P.wo
   return g;
 }
 
+/** Wall between two rooms: two posts and a tall header, so the doorway frames the next room. */
 function divider(x: number, hex: string) {
   const g = new THREE.Group();
   g.add(mesh(G.rbox(0.16, 2.9, 1.7, 0.03), hex, x, 1.45, -2.15));
   g.add(mesh(G.rbox(0.16, 2.9, 1.1, 0.03), hex, x, 1.45, 1.85));
-  g.add(mesh(G.rbox(0.16, 0.3, 4.9, 0.03), hex, x, 2.75, -0.55));
+  g.add(mesh(G.rbox(0.16, 2.85, 4.3, 0.03), hex, x, 4.03, -0.85));
   return g;
 }
 
@@ -147,12 +153,47 @@ function windowPane(x: number, y: number, z: number, w: number, h: number) {
   return g;
 }
 
-function room(g: THREE.Group, x: number, w: number, floor: string, wall: string) {
+/** Back wall rises well above the camera's top edge, so no empty band shows over the room. */
+export const WALL_H = 5.5;
+function room(g: THREE.Group, x: number, w: number, floor: string, wall: string, beam: string) {
   g.add(mesh(G.rbox(w, 0.14, 7.4, 0.04), floor, x, -0.07, 0.15));
-  g.add(mesh(G.rbox(w, 2.95, 0.18, 0.03), wall, x, 1.42, -3.12));
-  g.add(mesh(G.rbox(w, 0.08, 3.4, 0.02), wall, x, 2.94, -1.4));
+  g.add(mesh(G.rbox(w, WALL_H, 0.18, 0.03), wall, x, WALL_H / 2 - 0.03, -3.12));
+  // a wooden beam with a warm LED strip under it: the glow along the wall is a light fixture, not a seam
+  g.add(mesh(G.rbox(w, 0.14, 0.36, 0.03), beam, x, 3.12, -2.9));
+  const led = new THREE.Mesh(G.rbox(w - 0.5, 0.035, 0.06, 0.01), emissive("#ffe2a8", 1.5));
+  led.position.set(x, 3.02, -2.78);
+  g.add(led);
   const base = mesh(G.rbox(w, 0.12, 0.05, 0.01), "#0f1013", x, 0.06, -3.0);
   g.add(base);
+}
+
+/** A soft shaft of light from a window to the floor: one additive quad with a fading gradient. */
+function sunShaft(x: number, y: number, z: number, w: number, h: number, reach: number, lean: number) {
+  const c = document.createElement("canvas");
+  c.width = 4;
+  c.height = 128;
+  const ctx = c.getContext("2d")!;
+  const gr = ctx.createLinearGradient(0, 0, 0, 128);
+  gr.addColorStop(0, "rgba(255,226,170,0)");
+  gr.addColorStop(0.5, "rgba(255,226,170,0.5)");
+  gr.addColorStop(1, "rgba(255,226,170,0.95)");
+  ctx.fillStyle = gr;
+  ctx.fillRect(0, 0, 4, 128);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  const geo = new THREE.BufferGeometry();
+  const x0 = x - w / 2;
+  const x1 = x + w / 2;
+  const top = y + h / 2;
+  const bot = y - h / 2;
+  // the top edge sits on the window, the foot lands on the floor `reach` further into the room and `lean` to the right
+  geo.setAttribute("position", new THREE.Float32BufferAttribute([x0, top, z, x1, top, z, x0 + lean, 0.03, z + reach, x1 + lean, 0.03, z + reach, x0, bot, z, x1, bot, z], 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute([0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1], 2));
+  geo.setIndex([0, 1, 2, 1, 3, 2]);
+  const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false, toneMapped: false }));
+  m.name = "shaft";
+  m.renderOrder = 2;
+  return m;
 }
 
 /**
@@ -170,23 +211,36 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
     return o;
   };
 
-  room(g, -0.6, 9.2, P.floorWood, P.wall);
-  room(g, 6.15, 5.2, "#161a24", "#1d2231");
-  room(g, 11.2, 5.2, "#1f1a18", "#2a221e");
-  room(g, 16.15, 5.2, "#161d1a", "#1c2622");
-  room(g, 21.2, 5.2, "#0e1a1c", "#122428");
-  room(g, 26.4, 5.4, "#121419", "#181b22");
-  g.add(mesh(G.rbox(0.18, 2.95, 4.6, 0.03), P.wall, -5.3, 1.42, -0.9));
-  g.add(mesh(G.rbox(0.22, 2.95, 4.8, 0.03), "#181b22", 29.05, 1.42, -0.7));
-  g.add(divider(3.55, P.wallLight));
-  g.add(divider(8.7, "#1d2231"));
-  g.add(divider(13.85, "#2a221e"));
-  g.add(divider(18.9, "#1c2622"));
-  g.add(divider(23.85, "#122428"));
+  // each surface is registered with a day colour (warm, the default) and the original night colour
+  const themed: { m: THREE.MeshStandardMaterial; day: THREE.Color; night: THREE.Color }[] = [];
+  const th = (day: string, night: string) => {
+    if (!themed.some((t) => t.m === clay(day))) themed.push({ m: clay(day), day: new THREE.Color(day), night: new THREE.Color(night) });
+    return day;
+  };
+  room(g, -0.6, 9.2, th("#a8794a", P.floorWood), th("#ead6b6", P.wall), th("#b98d5c", P.wallLight));
+  room(g, 6.15, 5.2, th("#a8887a", "#161a24"), th("#dccfe4", "#1d2231"), th("#9f86b4", "#252c40"));
+  room(g, 11.2, 5.2, th("#b4865c", "#1f1a18"), th("#f2d2ac", "#2a221e"), th("#cf8f5a", "#362b26"));
+  room(g, 16.15, 5.2, th("#aa9668", "#161d1a"), th("#d3e0be", "#1c2622"), th("#86a56f", "#26332d"));
+  room(g, 21.2, 5.2, th("#8eaa9c", "#0e1a1c"), th("#c4e3da", "#122428"), th("#5fb0a2", "#1a3338"));
+  room(g, 26.4, 5.4, th("#b89c62", "#121419"), th("#f4dfa8", "#181b22"), th("#d8a93f", "#242831"));
+  g.add(mesh(G.rbox(0.18, WALL_H, 4.6, 0.03), th("#ead6b6", P.wall), -5.3, WALL_H / 2 - 0.03, -0.9));
+  g.add(mesh(G.rbox(0.22, WALL_H, 4.8, 0.03), th("#e8d4a4", "#181b22"), 29.05, WALL_H / 2 - 0.03, -0.7));
+  g.add(divider(3.55, th("#d9bd96", P.wallLight)));
+  g.add(divider(8.7, th("#cdbfd9", "#1d2231")));
+  g.add(divider(13.85, th("#e3c19a", "#2a221e")));
+  g.add(divider(18.9, th("#c3d3ae", "#1c2622")));
+  g.add(divider(23.85, th("#b6d6cc", "#122428")));
 
-  const hemi = new THREE.HemisphereLight("#8fa3c4", "#1a1410", 0.55);
+  // Light plan: every light has a daylight and a night value; `applyLook` blends them by look.day.
+  // Night is the lamp-lit dark room: sun, hemisphere and rim nearly off, the lamp, pendant and small colored room lights carry it.
+  const lightPlan: { l: THREE.Light; i: [number, number]; c: [string, string]; g?: [string, string] }[] = [];
+  const plan = <T extends THREE.Light>(l: T, i: [number, number], c: [string, string], gc?: [string, string]) => {
+    lightPlan.push({ l, i, c, g: gc });
+    return l;
+  };
+  const hemi = plan(new THREE.HemisphereLight("#fff4e2", "#d2b48e", 1.15), [1.15, 0.12], ["#fff4e2", "#8fa3c4"], ["#d2b48e", "#1a1410"]);
   g.add(hemi);
-  const key = new THREE.DirectionalLight("#ffe7c8", 2.1);
+  const key = plan(new THREE.DirectionalLight("#ffe0b0", 2.4), [2.4, 0.25], ["#ffe0b0", "#ffe7c8"]);
   key.position.set(-6, 9, 7);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
@@ -200,15 +254,17 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
   key.shadow.normalBias = 0.04;
   key.target.position.set(8, 0, -1);
   g.add(key, key.target);
-  const fill = new THREE.DirectionalLight("#6f86ff", 0.35);
+  const fill = plan(new THREE.DirectionalLight("#ffd6a8", 0.3), [0.3, 0.25], ["#ffd6a8", "#6f86ff"]);
   fill.position.set(10, 4, -6);
   g.add(fill);
-  // cool rim from behind and above: separates the clay figures from the dark walls
-  const rim = new THREE.DirectionalLight("#9fb4ff", 0.6);
+  // rim from behind and above: a sun glow by day, a cool edge light at night, so the clay figures stay apart from the walls
+  const rim = plan(new THREE.DirectionalLight("#ffe9cf", 0.45), [0.45, 0.25], ["#ffe9cf", "#9fb4ff"]);
   rim.position.set(4, 2.6, -9);
   rim.target.position.set(6, 1, 2);
   g.add(rim, rim.target);
   const roomLights: THREE.PointLight[] = [];
+  // the room's hue is mixed with warm window light by day, so rooms read as colored daylight, not as backlight
+  const WARM = new THREE.Color("#ffd9a8");
   for (const [x, c] of [
     [-2.6, "#ffcf9a"],
     [6.15, "#7c5cff"],
@@ -217,8 +273,10 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
     [21.2, "#4df0d0"],
     [26.4, "#ffd85c"],
   ] as const) {
-    const pl = new THREE.PointLight(c, x > 24 ? 11 : 6, 7, 1.8);
+    const night = x > 24 ? 11 : 6;
+    const pl = plan(new THREE.PointLight(c, night, 7, 1.8), [night * 1.1, night], ["#" + new THREE.Color(c).lerp(WARM, 0.62).getHexString(), c]);
     pl.position.set(x, 2.5, -1.2);
+    pl.distance = 10;
     g.add(pl);
     roomLights.push(pl);
   }
@@ -237,6 +295,7 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
 
   const win = windowPane(-4.55, 1.85, -3.02, 1.15, 1.05);
   addPick(win);
+  const shafts: THREE.Mesh[] = [sunShaft(-4.55, 1.85, -2.98, 1.15, 1.05, 2.2, 1.4)];
   await pause();
 
   const sofaX = F.sofa.x;
@@ -319,7 +378,7 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
   const bulb = new THREE.Mesh(G.sphere(0.05, 12), emissive("#ffe2a8", 3.2));
   bulb.position.y = 1.55;
   lamp.add(bulb);
-  const lampLight = new THREE.PointLight("#ffd9a0", 8, 6, 1.6);
+  const lampLight = plan(new THREE.PointLight("#ffd9a0", 4, 6, 1.6), [4, 14], ["#ffd9a0", "#ffd9a0"]);
   lampLight.position.set(0, 1.5, 0);
   lampLight.castShadow = false;
   lamp.add(lampLight);
@@ -331,7 +390,7 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
   pendShade.position.set(deskX, 2.3, deskZ);
   g.add(pendShade);
   g.add(new THREE.Mesh(G.sphere(0.04, 12), emissive("#ffe2a8", 3.4)).translateX(deskX).translateY(2.27).translateZ(deskZ));
-  const pendant = new THREE.PointLight("#ffe2a8", 10, 5.5, 1.6);
+  const pendant = plan(new THREE.PointLight("#ffe2a8", 5, 5.5, 1.6), [5, 16], ["#ffe2a8", "#ffe2a8"]);
   pendant.position.set(deskX, 2.2, deskZ);
   pendant.castShadow = true;
   pendant.shadow.mapSize.set(1024, 1024);
@@ -436,8 +495,9 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
   [
     { e: education.find((x) => x.id === "espm")!, short: "ESPM", sub: "TCC 10" },
     { e: education.find((x) => x.id === "unifei")!, short: "SI", sub: "2018–23" },
+    { e: education.find((x) => x.id === "pos-ia")!, short: "UNIPDS", sub: "2026–27" },
   ].forEach((d, i) => {
-    const dip = namePlate(d.short, d.sub, stuX - 0.2 + i * 0.85, 0.92, -2.98, 0.76, 0.4, "#141a17");
+    const dip = namePlate(d.short, d.sub, stuX - 0.6 + i * 0.8, 0.92, -2.98, 0.76, 0.4, "#141a17");
     tag(dip, "education", d.e.id);
     addPick(dip);
   });
@@ -524,6 +584,27 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
   tag(fim, "egg", "mail");
   addPick(fim);
   addPick(windowPane(balX - 1.9, 1.75, -3.02, 0.9, 1.1));
+  shafts.push(sunShaft(balX - 1.9, 1.75, -2.98, 0.9, 1.1, 2.2, 1.2));
+  shafts.forEach((m) => g.add(m));
+  // dust motes drifting through the shafts (one Points per shaft, a few dozen specks each)
+  const dusts = shafts.map((m) => {
+    const n = 36;
+    const base = new Float32Array(n * 3);
+    const bb = new THREE.Box3().setFromObject(m);
+    for (let i = 0; i < n; i++) {
+      const u = (i * 0.618034) % 1;
+      const v = (i * 0.414214) % 1;
+      base[i * 3] = bb.min.x + (bb.max.x - bb.min.x) * (0.1 + 0.8 * u) * 0.9 + 0.2;
+      base[i * 3 + 1] = 0.5 + (bb.max.y - 0.7) * v;
+      base[i * 3 + 2] = bb.min.z + (bb.max.z - bb.min.z) * (((i * 0.7548) % 1) * 0.8 + 0.1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(base.slice(), 3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: "#fff1cf", size: 0.05, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+    pts.frustumCulled = false;
+    g.add(pts);
+    return { pts, base };
+  });
   const p4 = plant(balX + 1.45, 0.5, 0.85);
   plants.push(p4);
   addPick(p4);
@@ -540,7 +621,7 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
     pickables.push(bulbM);
     bulbs.push(bulbM);
   }
-  const string = new THREE.PointLight("#ffd27a", 4, 5, 1.8);
+  const string = plan(new THREE.PointLight("#ffd27a", 4, 5, 1.8), [5, 4], ["#ffd27a", "#ffd27a"]);
   string.position.set(balX, 2.2, -2.2);
   g.add(string);
   roomLights.push(string);
@@ -553,6 +634,41 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
   g.traverse((o) => {
     if (o.name === "sky") sky.push(o as THREE.Mesh);
   });
+
+  const look = { day: 1, dusk: 0 };
+  const C = new THREE.Color();
+  const SKY: [string, string] = ["#9fd3ee", "#2a4a6e"];
+  const lerp = THREE.MathUtils.lerp;
+  const applyLook = () => {
+    const d = look.day;
+    for (const { l, i, c, g: gc } of lightPlan) {
+      l.intensity = lerp(i[1], i[0], d);
+      l.color.set(c[1]).lerp(C.set(c[0]), d);
+      if (gc) (l as THREE.HemisphereLight).groundColor.set(gc[1]).lerp(C.set(gc[0]), d);
+      l.userData.base = l.intensity;
+    }
+    for (const t of themed) t.m.color.copy(t.night).lerp(t.day, d);
+    (shade.material as THREE.MeshStandardMaterial).emissiveIntensity = lerp(0.9, 0.2, d);
+    for (const sh of shafts) (sh.material as THREE.MeshBasicMaterial).opacity = 0.11 * d;
+    for (const dust of dusts) dust.pts.visible = d > 0.05;
+    for (const s2 of sky) {
+      const m = s2.material as THREE.MeshStandardMaterial;
+      m.color.set(SKY[1]).lerp(C.set(SKY[0]), d).lerp(C.set("#0b1020"), look.dusk);
+      m.emissive.copy(m.color);
+      m.userData.look = true; // the story's hover highlight reads this: the sky glow follows the look, not a stale snapshot
+    }
+  };
+  const updateDust = (t: number, still: boolean) => {
+    if (still || look.day < 0.05) return;
+    for (const { pts, base } of dusts) {
+      const a = pts.geometry.attributes.position as THREE.BufferAttribute;
+      for (let i = 0; i < a.count; i++) {
+        a.setXYZ(i, base[i * 3] + Math.sin(t * 0.3 + i * 1.7) * 0.18, base[i * 3 + 1] + Math.sin(t * 0.21 + i * 2.3) * 0.14 + ((t * 0.02 * (1 + (i % 3))) % 0.3), base[i * 3 + 2] + Math.cos(t * 0.27 + i) * 0.16);
+      }
+      a.needsUpdate = true;
+    }
+  };
+  applyLook();
 
   return {
     group: g,
@@ -582,6 +698,9 @@ export async function buildWorld(pause: () => Promise<void> = async () => {}): P
     badge,
     sky,
     night,
+    look,
+    applyLook,
+    updateDust,
     spots: {
       desk: { x: F.chair.x, z: F.chair.z, cam: { px: -1.4, py: 2.7, pz: 6.2, tx: 0.3, ty: 1.15, tz: -0.9 } },
       living: { ...SPOTS_XZ.living, cam: { px: -4.6, py: 2.5, pz: 6.4, tx: -2.7, ty: 0.85, tz: -1.0 } },
